@@ -1,0 +1,43 @@
+import { GitClient, CherryPickResult, CommitInfo, DiffStats, PushResult } from './types';
+export declare class RealGitClient implements GitClient {
+    private getGit;
+    status(repoPath: string): Promise<string>;
+    stash(repoPath: string): Promise<string>;
+    stashPop(repoPath: string): Promise<string>;
+    stashList(repoPath: string): Promise<string>;
+    tagList(repoPath: string): Promise<string[]>;
+    tagCreate(repoPath: string, tag: string): Promise<void>;
+    tagDelete(repoPath: string, tag: string): Promise<void>;
+    tagDeleteRemote(repoPath: string, tag: string): Promise<void>;
+    tagExistsRemote(repoPath: string, tag: string): Promise<boolean>;
+    cherryPick(repoPath: string, shas: string[]): Promise<CherryPickResult>;
+    cherryPickContinue(repoPath: string): Promise<CherryPickResult>;
+    cherryPickSkip(repoPath: string): Promise<CherryPickResult>;
+    cherryPickAbort(repoPath: string): Promise<void>;
+    conflictFiles(repoPath: string): Promise<string>;
+    log(repoPath: string, fromTag: string, toRef: string): Promise<CommitInfo[]>;
+    logOneline(repoPath: string, fromTag: string, toRef: string): Promise<string>;
+    logContains(repoPath: string, sha: string): Promise<boolean>;
+    diffStat(repoPath: string, fromTag: string, toRef: string): Promise<DiffStats>;
+    push(repoPath: string, branch: string): Promise<PushResult>;
+    pushTag(repoPath: string, tag: string): Promise<PushResult>;
+    pushAllTags(repoPath: string): Promise<PushResult>;
+    private classifyPushError;
+    pullRebase(repoPath: string, branch: string): Promise<string>;
+    pull(repoPath: string): Promise<string>;
+    fetchTags(repoPath: string): Promise<void>;
+    fetchAll(repoPath: string): Promise<void>;
+    checkout(repoPath: string, ref: string): Promise<void>;
+    currentBranch(repoPath: string): Promise<string>;
+    remoteExists(repoPath: string, remoteName: string): Promise<boolean>;
+    setRemote(repoPath: string, remoteName: string, url: string): Promise<void>;
+    commitAll(repoPath: string, message: string): Promise<void>;
+    add(repoPath: string, files: string[]): Promise<void>;
+    shaExists(repoPath: string, sha: string): Promise<boolean>;
+    getConfigEmail(repoPath: string): Promise<string>;
+    showTagDate(repoPath: string, tag: string): Promise<string>;
+    getFileAtRef(repoPath: string, ref: string, filePath: string): Promise<string | null>;
+    lsRemoteTags(repoPath: string, remoteUrl: string): Promise<string[]>;
+    lsRemoteTagsFiltered(repoPath: string, remoteUrl: string, trackPrefix: string): Promise<string[]>;
+}
+//# sourceMappingURL=git-client.d.ts.map

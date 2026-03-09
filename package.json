@@ -1,0 +1,30 @@
+{
+  "name": "release-tool",
+  "version": "1.0.0",
+  "description": "Interactive CLI tool for Git release management across the Literatum UI widget hierarchy",
+  "main": "dist/index.js",
+  "bin": {
+    "release-tool": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "execa": "^5.1.1",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1",
+    "proper-lockfile": "^4.1.2",
+    "simple-git": "^3.27.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^8.2.10",
+    "@types/node": "^18.19.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.3.3"
+  }
+}
