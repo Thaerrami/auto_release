@@ -34,12 +34,24 @@ async function waitForUserAction() {
     });
 }
 async function performCherryPicks(repoPath, repoId, track, gitClient, context, logger) {
-    const { shaInput } = await inquirer_1.default.prompt([{
-            type: 'input',
-            name: 'shaInput',
-            message: messages_1.msg.cherryPickPrompt(),
-        }]);
-    const shas = parseShaInput(shaInput);
+    // Use run-wide SHAs if already set (prompt once, use for all repos/tracks)
+    let shas;
+    if (Array.isArray(context.cherryPickShas)) {
+        shas = context.cherryPickShas;
+        if (shas.length > 0) {
+            console.log(chalk_1.default.dim(`  Using cherry-pick SHAs for all: ${shas.join(' ')}`));
+            logger.info(`Using run-wide cherry-pick SHAs`, { repo: repoId, track });
+        }
+    }
+    else {
+        const { shaInput } = await inquirer_1.default.prompt([{
+                type: 'input',
+                name: 'shaInput',
+                message: messages_1.msg.cherryPickPromptAll(),
+            }]);
+        shas = parseShaInput(shaInput);
+        context.cherryPickShas = shas;
+    }
     if (shas.length === 0) {
         logger.info('No cherry-picks requested', { repo: repoId, track });
         return { shas: [], success: true };
@@ -107,8 +119,11 @@ async function performCherryPicks(repoPath, repoId, track, gitClient, context, l
                     logger.info(`Revision ${sha} already in history, skipping`, { repo: repoId, track });
                     break;
                 }
-                console.log(chalk_1.default.yellow('  Conflict resolution failed or revision already committed.'));
-                console.log(chalk_1.default.yellow('  Please resolve manually and press Enter to retry.'));
+                // Skip and continue — don't interrupt the process
+                console.log(chalk_1.default.dim(`  Conflict resolution failed or revision already committed. Skipping ${sha}...`));
+                logger.info(`Skipping ${sha} after conflict resolution failed`, { repo: repoId, track });
+                await gitClient.cherryPickAbort(repoPath);
+                break;
             }
         }
         else {

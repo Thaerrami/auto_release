@@ -2,12 +2,18 @@ import os from 'os';
 import path from 'path';
 import { CLIFlags } from './types';
 
+/** Tool root (auto_release) — logs stay here, never in the repos being released. */
+function getToolRoot(): string {
+  return path.resolve(__dirname, '..');
+}
+
 export function parseFlags(argv: string[]): CLIFlags {
+  const toolRoot = getToolRoot();
   const flags: CLIFlags = {
     dryRun: false,
     verbose: false,
     noColor: false,
-    logDir: path.resolve(process.cwd(), 'release-logs'),
+    logDir: path.join(toolRoot, 'release-logs'),
     lockPath: `/tmp/release-tool-${os.hostname()}.lock`,
     repoOverride: null,
   };

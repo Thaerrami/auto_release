@@ -22,6 +22,8 @@ function repo(
   opts?: {
     versioning?: 'main' | 'independent';
     consumesArticle?: boolean;
+    cascadeChildren?: string[];
+    excludeFromRelease?: boolean;
   }
 ): RepoConfig {
   const depKeys: Record<string, string> = {};
@@ -39,6 +41,8 @@ function repo(
     baseBranch: 'develop',
     gitRemoteUrl: `${GH_BASE}/${id}.git`,
     consumesArticle: opts?.consumesArticle ?? false,
+    cascadeChildren: opts?.cascadeChildren,
+    excludeFromRelease: opts?.excludeFromRelease,
   };
 }
 
@@ -46,23 +50,26 @@ function repo(
  * Dependency tree:
  *
  *   ui-base (layer 1)
- *   ├── ui-core (layer 2)
+ *   ├── ui-core (layer 2) — hotfix on core cascades to photo + classic only
  *   │   ├── ui-theme-photo (layer 3)
  *   │   ├── ui-theme-classic (layer 3)
  *   │   ├── ui-theme-nextgen (layer 3)
- *   │   └── ui-products (layer 3)
+ *   │   └── ui-products (layer 3) — no tags, excluded from release
  *   └── ui-theme-eureka (layer 2)
  *
  *   ui-article (layer 0, independent versioning)
+ *
+ * Hotfix flow: when change is in ui-core, process ui-core only, then upgrade
+ * ui-theme-photo and ui-theme-classic (not ui-base, ui-theme-eureka, ui-products, ui-theme-nextgen).
  */
 export const REPOS: RepoConfig[] = [
-  repo('ui-base',          1, []),
-  repo('ui-core',          2, ['ui-base'],  { consumesArticle: true }),
-  repo('ui-theme-photo',   3, ['ui-core'],  { consumesArticle: true }),
-  repo('ui-theme-classic', 3, ['ui-core'],  { consumesArticle: true }),
-  repo('ui-theme-nextgen', 3, ['ui-core'],  { consumesArticle: true }),
-  repo('ui-products',      3, ['ui-core']),
-  repo('ui-theme-eureka',  2, ['ui-base'],  { consumesArticle: true }),
+  repo('ui-base',          1, [],           { cascadeChildren: ['ui-core', 'ui-theme-eureka'] }),
+  repo('ui-core',          2, ['ui-base'],   { consumesArticle: true, cascadeChildren: ['ui-theme-photo', 'ui-theme-classic'] }),
+  repo('ui-theme-photo',   3, ['ui-core'], { consumesArticle: true }),
+  repo('ui-theme-classic', 3, ['ui-core'], { consumesArticle: true }),
+  repo('ui-theme-nextgen', 3, ['ui-core'], { consumesArticle: true }),
+  repo('ui-products',      3, ['ui-core'], { excludeFromRelease: true }),
+  repo('ui-theme-eureka',  2, ['ui-base'], { consumesArticle: true }),
   repo('ui-article',       0, [],           { versioning: 'independent' }),
 ];
 
@@ -113,12 +120,13 @@ export function detectStandingRepo(cwd: string): RepoConfig | null {
 }
 
 /**
- * BFS from a starting repo, collecting it and all descendants
- * (repos that depend on it, directly or transitively), in dependency order.
+ * BFS from a starting repo, collecting it and descendants to upgrade.
+ * Uses cascadeChildren when set (e.g. ui-core → only [ui-theme-photo, ui-theme-classic]).
+ * Excludes repos with excludeFromRelease (e.g. ui-products has no tags).
  *
  * Examples:
- *   ui-base  → [ui-base, ui-core, ui-theme-eureka, ui-products, ui-theme-classic, ui-theme-nextgen, ui-theme-photo]
- *   ui-core  → [ui-core, ui-products, ui-theme-classic, ui-theme-nextgen, ui-theme-photo]
+ *   ui-base  → [ui-base, ui-core, ui-theme-eureka, ui-theme-photo, ui-theme-classic]
+ *   ui-core  → [ui-core, ui-theme-photo, ui-theme-classic]  (not ui-products, ui-theme-nextgen)
  *   ui-theme-photo → [ui-theme-photo]
  *   ui-article     → [ui-article]
  */
@@ -129,11 +137,20 @@ export function getRepoAndDescendants(startRepo: RepoConfig): RepoConfig[] {
   while (queue.length > 0) {
     const currentId = queue.shift()!;
     if (result.has(currentId)) continue;
+    const current = getRepoById(currentId);
+    if (!current || current.excludeFromRelease) continue;
     result.add(currentId);
 
-    for (const r of REPOS) {
-      if (r.deps.includes(currentId) && !result.has(r.id)) {
-        queue.push(r.id);
+    const children = current?.cascadeChildren
+      ? current.cascadeChildren
+      : REPOS
+          .filter((r) => r.deps.includes(currentId) && !r.excludeFromRelease)
+          .map((r) => r.id);
+
+    for (const childId of children) {
+      const child = getRepoById(childId);
+      if (child && !child.excludeFromRelease && !result.has(childId)) {
+        queue.push(childId);
       }
     }
   }

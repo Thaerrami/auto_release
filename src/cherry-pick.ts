@@ -40,13 +40,23 @@ export async function performCherryPicks(
   context: RunContext,
   logger: Logger
 ): Promise<{ shas: string[]; success: boolean; error?: string }> {
-  const { shaInput } = await inquirer.prompt<{ shaInput: string }>([{
-    type: 'input',
-    name: 'shaInput',
-    message: msg.cherryPickPrompt(),
-  }]);
-
-  const shas = parseShaInput(shaInput);
+  // Use run-wide SHAs if already set (prompt once, use for all repos/tracks)
+  let shas: string[];
+  if (Array.isArray(context.cherryPickShas)) {
+    shas = context.cherryPickShas;
+    if (shas.length > 0) {
+      console.log(chalk.dim(`  Using cherry-pick SHAs for all: ${shas.join(' ')}`));
+      logger.info(`Using run-wide cherry-pick SHAs`, { repo: repoId, track });
+    }
+  } else {
+    const { shaInput } = await inquirer.prompt<{ shaInput: string }>([{
+      type: 'input',
+      name: 'shaInput',
+      message: msg.cherryPickPromptAll(),
+    }]);
+    shas = parseShaInput(shaInput);
+    context.cherryPickShas = shas;
+  }
   if (shas.length === 0) {
     logger.info('No cherry-picks requested', { repo: repoId, track });
     return { shas: [], success: true };
@@ -127,8 +137,11 @@ export async function performCherryPicks(
           break;
         }
 
-        console.log(chalk.yellow('  Conflict resolution failed or revision already committed.'));
-        console.log(chalk.yellow('  Please resolve manually and press Enter to retry.'));
+        // Skip and continue — don't interrupt the process
+        console.log(chalk.dim(`  Conflict resolution failed or revision already committed. Skipping ${sha}...`));
+        logger.info(`Skipping ${sha} after conflict resolution failed`, { repo: repoId, track });
+        await gitClient.cherryPickAbort(repoPath);
+        break;
       }
     } else {
       logger.error(`Cherry-pick of ${sha} failed: ${result.error}`, { repo: repoId, track });

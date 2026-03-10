@@ -29,12 +29,12 @@ CREATED_TAGS=""
 
 # ─── Repo graph (bash 3 compatible — parallel arrays) ──────────────────────────
 #
-#   ui-base (layer 1)
-#   ├── ui-core (layer 2, dep: ui-base)
+#   ui-base (layer 1) — cascade: ui-core, ui-theme-eureka
+#   ├── ui-core (layer 2, dep: ui-base) — cascade: ui-theme-photo, ui-theme-classic only (hotfix)
 #   │   ├── ui-theme-photo (layer 3, dep: ui-core)
 #   │   ├── ui-theme-classic (layer 3, dep: ui-core)
 #   │   ├── ui-theme-nextgen (layer 3, dep: ui-core)
-#   │   └── ui-products (layer 3, dep: ui-core)
+#   │   └── ui-products (layer 3, dep: ui-core) — exclude (no tags)
 #   └── ui-theme-eureka (layer 2, dep: ui-base)
 #   ui-article (layer 0, independent)
 
@@ -42,6 +42,10 @@ REPO_IDS=(    ui-base ui-core ui-theme-photo ui-theme-classic ui-theme-nextgen u
 REPO_LAYERS=( 1       2       3              3                3                3           2               0)
 REPO_DEPS=(   ""      ui-base ui-core        ui-core          ui-core          ui-core     ui-base         "")
 REPO_ARTICLE=(no      yes     yes            yes              yes              no          yes             no)
+# cascadeChildren: space-separated; empty = use default deps
+REPO_CASCADE=( "ui-core ui-theme-eureka" "ui-theme-photo ui-theme-classic" "" "" "" "" "" "" )
+# excludeFromRelease: 1 = exclude (e.g. ui-products has no tags)
+REPO_EXCLUDE=( 0 0 0 0 0 1 0 0 )
 
 # ─── Color helpers ─────────────────────────────────────────────────────────────
 
@@ -82,6 +86,8 @@ repo_exists() { repo_index "$1" >/dev/null 2>&1; }
 repo_layer() { local idx; idx=$(repo_index "$1") && echo "${REPO_LAYERS[$idx]}"; }
 repo_dep()   { local idx; idx=$(repo_index "$1") && echo "${REPO_DEPS[$idx]}"; }
 repo_article() { local idx; idx=$(repo_index "$1") && echo "${REPO_ARTICLE[$idx]}"; }
+repo_cascade() { local idx; idx=$(repo_index "$1") && echo "${REPO_CASCADE[$idx]}" || echo ""; }
+repo_exclude() { local idx; idx=$(repo_index "$1") && echo "${REPO_EXCLUDE[$idx]}" || echo "0"; }
 repo_path()  { echo "$WORKSPACE/$1"; }
 repo_remote() { echo "$GH_BASE/$1.git"; }
 
@@ -97,7 +103,9 @@ detect_standing_repo() {
   return 1
 }
 
-# BFS to collect repo + all descendants, sorted by layer (1,2,3,0)
+# BFS to collect repo + descendants to upgrade. Uses REPO_CASCADE when set;
+# excludes REPO_EXCLUDE repos (e.g. ui-products has no tags).
+# ui-core hotfix → [ui-core, ui-theme-photo, ui-theme-classic] only.
 get_descendants() {
   local start="$1"
   local queue="$start"
@@ -113,16 +121,32 @@ get_descendants() {
     fi
 
     case " $visited " in *" $current "*) continue ;; esac
+    local ex
+    ex="$(repo_exclude "$current" 2>/dev/null)"
+    if [ "$ex" = "1" ]; then continue; fi
     visited="$visited $current"
     result="$result $current"
 
-    for id in "${REPO_IDS[@]}"; do
-      local dep
-      dep="$(repo_dep "$id")"
-      if [ "$dep" = "$current" ]; then
-        case " $visited " in *" $id "*) ;; *) queue="$queue $id" ;; esac
-      fi
-    done
+    local cascade
+    cascade="$(repo_cascade "$current" 2>/dev/null)"
+    if [ -n "$cascade" ]; then
+      for id in $cascade; do
+        ex="$(repo_exclude "$id" 2>/dev/null)"
+        if [ "$ex" != "1" ]; then
+          case " $visited " in *" $id "*) ;; *) queue="$queue $id" ;; esac
+        fi
+      done
+    else
+      for id in "${REPO_IDS[@]}"; do
+        ex="$(repo_exclude "$id" 2>/dev/null)"
+        if [ "$ex" = "1" ]; then continue; fi
+        local dep
+        dep="$(repo_dep "$id")"
+        if [ "$dep" = "$current" ]; then
+          case " $visited " in *" $id "*) ;; *) queue="$queue $id" ;; esac
+        fi
+      done
+    fi
   done
 
   # Sort by layer: 1, 2, 3, 0
@@ -262,35 +286,40 @@ process_repo() {
     esac
   fi
 
-  # Step 2: Select version tracks
-  echo ""
-  echo "  $(_cyan "Select version tracks for $repo_id")"
-  echo "  Available tracks:"
-
-  local all_tags_raw
-  all_tags_raw="$(git -C "$rp" tag -l 'v*' 2>/dev/null | sort -V)"
-  local seen_tracks=""
-  local IFS_BAK="$IFS"
-
-  while IFS= read -r tag; do
-    [ -z "$tag" ] && continue
-    local stripped="${tag#v}"
-    local track_name="v${stripped%.*}"
-    case " $seen_tracks " in
-      *" $track_name "*) ;;
-      *)
-        seen_tracks="$seen_tracks $track_name"
-        local latest
-        latest="$(get_latest_tag_in_track "$rp" "$track_name")"
-        echo "    $track_name — latest: $latest"
-        ;;
-    esac
-  done <<< "$all_tags_raw"
-
-  echo ""
-  local user_tracks_input
-  read -rp "  Enter tracks (space-separated, e.g. 2.7 2.8): " user_tracks_input
-  IFS=' ' read -ra user_tracks <<< "$user_tracks_input"
+  # Step 2: Version tracks (use run-wide selection from main)
+  local user_tracks
+  if [ -n "$RUN_TRACKS" ]; then
+    echo ""
+    echo "  $(_cyan "Using tracks for all repos: $RUN_TRACKS")"
+    IFS=' ' read -ra user_tracks <<< "$RUN_TRACKS"
+  else
+    echo ""
+    echo "  $(_cyan "Select version tracks for $repo_id")"
+    echo "  Available tracks:"
+    local all_tags_raw
+    all_tags_raw="$(git -C "$rp" tag -l 'v*' 2>/dev/null | sort -V)"
+    local seen_tracks=""
+    local IFS_BAK="$IFS"
+    while IFS= read -r tag; do
+      [ -z "$tag" ] && continue
+      local stripped="${tag#v}"
+      local track_name="v${stripped%.*}"
+      case " $seen_tracks " in
+        *" $track_name "*) ;;
+        *)
+          seen_tracks="$seen_tracks $track_name"
+          local latest
+          latest="$(get_latest_tag_in_track "$rp" "$track_name")"
+          echo "    $track_name — latest: $latest"
+          ;;
+      esac
+    done <<< "$all_tags_raw"
+    echo ""
+    local user_tracks_input
+    read -rp "  Enter tracks (space-separated, e.g. 2.7 2.8): " user_tracks_input
+    IFS=' ' read -ra user_tracks <<< "$user_tracks_input"
+    IFS="$IFS_BAK"
+  fi
 
   if [ ${#user_tracks[@]} -eq 0 ]; then
     log_warn "No tracks selected. Skipping $repo_id."
@@ -298,11 +327,16 @@ process_repo() {
     return 0
   fi
 
-  # Step 3: Cherry-pick SHAs
-  echo ""
-  local revisions_input
-  read -rp "  Enter commit SHAs to cherry-pick (space-separated, or empty to skip): " revisions_input
-  IFS=' ' read -ra revisions <<< "$revisions_input"
+  # Step 3: Cherry-pick SHAs (use run-wide from main)
+  local revisions
+  if [ -n "$RUN_REVISIONS" ]; then
+    IFS=' ' read -ra revisions <<< "$RUN_REVISIONS"
+  else
+    echo ""
+    local revisions_input
+    read -rp "  Enter commit SHAs to cherry-pick (space-separated, or empty to skip): " revisions_input
+    IFS=' ' read -ra revisions <<< "$revisions_input"
+  fi
 
   # Step 4: Process each track
   for user_track in "${user_tracks[@]}"; do
@@ -335,74 +369,7 @@ process_repo() {
       fi
     fi
 
-    # Bump parent dep
-    if [ -n "$dep_id" ]; then
-      local parent_tag=""
-      parent_tag="$(get_created_tags_for "$dep_id" "$track")"
-
-      if [ -z "$parent_tag" ]; then
-        local pr
-        pr="$(repo_remote "$dep_id")"
-        parent_tag="$(get_latest_remote_tag_in_track "$rp" "$pr" "$track" 2>/dev/null || true)"
-        [ -n "$parent_tag" ] && echo "  $(_dim "Using latest remote $parent_tag for $dep_id")"
-      fi
-
-      if [ -n "$parent_tag" ]; then
-        local dep_value="$GH_SSH_BASE/${dep_id}.git#${parent_tag}"
-        if $DRY_RUN; then
-          dry_run_skip "Update $dep_id to $dep_value in package.json"
-        else
-          if command -v jq >/dev/null 2>&1; then
-            jq --arg d "$dep_id" --arg v "$dep_value" '.dependencies[$d] = $v' \
-              "$rp/package.json" > "$rp/package.json.tmp" && mv "$rp/package.json.tmp" "$rp/package.json"
-          else
-            sed -i.bak "s|\"$dep_id\": \"[^\"]*\"|\"$dep_id\": \"$dep_value\"|" "$rp/package.json"
-            rm -f "$rp/package.json.bak"
-          fi
-          git -C "$rp" add package.json
-          [ -f "$rp/package-lock.json" ] && git -C "$rp" add package-lock.json
-          git -C "$rp" commit -m "Update $dep_id to version $parent_tag" --allow-empty
-          echo "  $(_green '↑') Bumped $dep_id → $parent_tag"
-          log_info "Bumped $dep_id to $parent_tag"
-        fi
-      else
-        log_warn "No tag for $dep_id on $track — skipping dep bump"
-      fi
-    fi
-
-    # Bump ui-article if consumed
-    if [ "$consumes" = "yes" ] && command -v jq >/dev/null 2>&1; then
-      local cur_article
-      cur_article="$(jq -r '.dependencies["ui-article"] // empty' "$rp/package.json" 2>/dev/null || true)"
-      if [ -n "$cur_article" ]; then
-        local latest_art=""
-        latest_art="$(get_all_created_tags_for "ui-article")"
-        [ -n "$latest_art" ] && latest_art="${latest_art##* }"
-        [ -z "$latest_art" ] && latest_art="$(get_latest_remote_article_tag "$rp" 2>/dev/null || true)"
-
-        if [ -n "$latest_art" ]; then
-          local cur_ver
-          cur_ver="$(extract_version_from_dep "$cur_article")"
-          if [ "$cur_ver" != "$latest_art" ]; then
-            local art_val="$GH_SSH_BASE/ui-article.git#${latest_art}"
-            if $DRY_RUN; then
-              dry_run_skip "Update ui-article to $latest_art"
-            else
-              jq --arg v "$art_val" '.dependencies["ui-article"] = $v' \
-                "$rp/package.json" > "$rp/package.json.tmp" && mv "$rp/package.json.tmp" "$rp/package.json"
-              git -C "$rp" add package.json
-              git -C "$rp" commit -m "Upgrade ui-article to $latest_art" --allow-empty
-              echo "  $(_green '↑') Bumped ui-article → $latest_art"
-              log_info "Bumped ui-article to $latest_art"
-            fi
-          else
-            echo "  $(_dim "ui-article already at $latest_art, skipping")"
-          fi
-        fi
-      fi
-    fi
-
-    # Cherry-pick
+    # Cherry-pick first — so package.json dep-bump never conflicts
     if [ ${#revisions[@]} -gt 0 ]; then
       for rev in "${revisions[@]}"; do
         [ -z "$rev" ] && continue
@@ -425,7 +392,9 @@ process_repo() {
             elif git -C "$rp" log --oneline | grep -q "${rev:0:7}"; then
               echo "  $(_dim "Revision $rev already committed. Skipping.")"; break
             else
-              echo "  $(_yellow 'Resolution failed. Try again.')"
+              echo "  $(_dim "Conflict resolution failed. Skipping $rev...")"
+              git -C "$rp" cherry-pick --abort 2>/dev/null || true
+              log_info "Skipped $rev after resolution failed"; break
             fi
           done
         else
@@ -434,41 +403,127 @@ process_repo() {
       done
     fi
 
-    # npm install
+    # Bump parent dep — after cherry-pick so it never conflicts
+    if [ -n "$dep_id" ]; then
+      local parent_tag=""
+      parent_tag="$(get_created_tags_for "$dep_id" "$track")"
+
+      if [ -z "$parent_tag" ]; then
+        local pr
+        pr="$(repo_remote "$dep_id")"
+        parent_tag="$(get_latest_remote_tag_in_track "$rp" "$pr" "$track" 2>/dev/null || true)"
+        [ -n "$parent_tag" ] && echo "  $(_dim "Using latest remote $parent_tag for $dep_id")"
+      fi
+
+      if [ -n "$parent_tag" ]; then
+        local dep_value="$GH_SSH_BASE/${dep_id}.git#${parent_tag}"
+        if $DRY_RUN; then
+          dry_run_skip "Update $dep_id to $dep_value in package.json"
+        else
+          # Replace only the dependency value to preserve indentation and formatting
+          sed -i.bak "s|\"$dep_id\": \"[^\"]*\"|\"$dep_id\": \"$dep_value\"|" "$rp/package.json"
+          rm -f "$rp/package.json.bak"
+          git -C "$rp" add package.json
+          [ -f "$rp/package-lock.json" ] && git -C "$rp" add package-lock.json
+          git -C "$rp" commit -m "Update $dep_id to version $parent_tag" --allow-empty
+          echo "  $(_green '↑') Bumped $dep_id → $parent_tag"
+          log_info "Bumped $dep_id to $parent_tag"
+        fi
+      else
+        log_warn "No tag for $dep_id on $track — skipping dep bump"
+      fi
+    fi
+
+    # Bump ui-article only if user chose to upgrade and provided version for this track
+    if [ "$consumes" = "yes" ] && [ "$RUN_ARTICLE_MODE" != "none" ]; then
+      local art_tag=""
+      if [ "$RUN_ARTICLE_MODE" = "single" ] && [ -n "$RUN_ARTICLE_VERSION" ]; then
+        art_tag="$RUN_ARTICLE_VERSION"
+      elif [ "$RUN_ARTICLE_MODE" = "per-track" ] && [ -n "$RUN_ARTICLE_PER_TRACK" ]; then
+        local entry
+        for entry in $RUN_ARTICLE_PER_TRACK; do
+          case "$entry" in
+            ${track}=*) art_tag="${entry#*=}"; break ;;
+          esac
+        done
+      fi
+      if [ -n "$art_tag" ]; then
+        local cur_article=""
+        command -v jq >/dev/null 2>&1 && cur_article="$(jq -r '.dependencies["ui-article"] // empty' "$rp/package.json" 2>/dev/null || true)"
+        [ -z "$cur_article" ] && cur_article="$(grep -o '"ui-article": "[^"]*"' "$rp/package.json" 2>/dev/null | sed 's/.*: "\(.*\)"/\1/')"
+        if [ -n "$cur_article" ]; then
+          local cur_ver art_val
+          cur_ver="$(extract_version_from_dep "$cur_article")"
+          if [ "$cur_ver" != "${art_tag#v}" ]; then
+            art_val="$GH_SSH_BASE/ui-article.git#${art_tag}"
+            if $DRY_RUN; then
+              dry_run_skip "Update ui-article to $art_tag"
+            else
+              sed -i.bak "s|\"ui-article\": \"[^\"]*\"|\"ui-article\": \"$art_val\"|" "$rp/package.json"
+              rm -f "$rp/package.json.bak"
+              git -C "$rp" add package.json
+              git -C "$rp" commit -m "Upgrade ui-article to $art_tag" --allow-empty
+              echo "  $(_green '↑') Bumped ui-article → $art_tag"
+              log_info "Bumped ui-article to $art_tag"
+            fi
+          else
+            echo "  $(_dim "ui-article already at $art_tag, skipping")"
+          fi
+        fi
+      fi
+    fi
+  fi
+
+    # npm install (optional)
     if $DRY_RUN; then
       dry_run_skip "npm install"
     else
-      echo "  Running npm install..."
-      while true; do
-        if (cd "$rp" && npm install 2>&1); then
-          log_info "npm install succeeded"; break
-        else
-          log_error "npm install failed"
-          local ir
-          read -rp "  ENTER to retry, ABORT to cancel: " ir
-          if [ "$ir" = "ABORT" ] || [ "$ir" = "abort" ]; then log_warn "Install aborted"; return 1; fi
-        fi
-      done
+      local run_install
+      read -rp "  Run npm install? [Y/S] (yes/skip): " run_install
+      if [ "$run_install" = "S" ] || [ "$run_install" = "s" ]; then
+        log_info "npm install skipped"
+      else
+        echo "  Running npm install..."
+        while true; do
+          if (cd "$rp" && npm install 2>&1); then
+            log_info "npm install succeeded"; break
+          else
+            log_error "npm install failed"
+            local ir
+            read -rp "  ENTER=retry, SKIP=skip, ABORT=cancel: " ir
+            case "$ir" in
+              SKIP|skip)  log_warn "npm install skipped"; break ;;
+              ABORT|abort) log_warn "npm install aborted"; break ;;
+            esac
+          fi
+        done
+      fi
     fi
 
-    # npm run build
+    # npm run build (optional)
     if $DRY_RUN; then
       dry_run_skip "npm run build"
     else
-      echo "  Running npm run build..."
-      while true; do
-        if (cd "$rp" && npm run build 2>&1); then
-          log_info "Build succeeded"; break
-        else
-          log_error "Build failed"
-          local br
-          read -rp "  ENTER=retry, SKIP=skip, ABORT=cancel: " br
-          case "$br" in
-            ABORT|abort) log_warn "Build aborted"; return 1 ;;
-            SKIP|skip)   log_warn "Build skipped"; break ;;
-          esac
-        fi
-      done
+      local run_build
+      read -rp "  Run npm run build? [Y/S] (yes/skip): " run_build
+      if [ "$run_build" = "S" ] || [ "$run_build" = "s" ]; then
+        log_info "npm build skipped"
+      else
+        echo "  Running npm run build..."
+        while true; do
+          if (cd "$rp" && npm run build 2>&1); then
+            log_info "Build succeeded"; break
+          else
+            log_error "Build failed"
+            local br
+            read -rp "  ENTER=retry, SKIP=skip, ABORT=cancel: " br
+            case "$br" in
+              SKIP|skip)  log_warn "Build skipped"; break ;;
+              ABORT|abort) log_warn "Build aborted"; break ;;
+            esac
+          fi
+        done
+      fi
     fi
 
     # Diff summary
@@ -613,6 +668,70 @@ main() {
   done
   if ! $all_valid; then
     echo ""; echo "  $(_red 'Missing repo paths. Cannot continue.')"; exit 1
+  fi
+
+  # Prompt once for tracks and cherry-pick SHAs (used for all repos)
+  local first_repo
+  first_repo="${tree%% *}"
+  local first_rp
+  first_rp="$(repo_path "$first_repo")"
+  echo ""
+  echo "  $(_cyan "Select version tracks (used for all repos in this run):")"
+  echo "  Available tracks:"
+  local all_tags_raw
+  all_tags_raw="$(git -C "$first_rp" tag -l 'v*' 2>/dev/null | sort -V)"
+  local seen_tracks=""
+  local IFS_BAK="$IFS"
+  while IFS= read -r tag; do
+    [ -z "$tag" ] && continue
+    local stripped="${tag#v}"
+    local track_name="v${stripped%.*}"
+    case " $seen_tracks " in
+      *" $track_name "*) ;;
+      *)
+        seen_tracks="$seen_tracks $track_name"
+        local latest
+        latest="$(get_latest_tag_in_track "$first_rp" "$track_name")"
+        echo "    $track_name — latest: $latest"
+        ;;
+    esac
+  done <<< "$all_tags_raw"
+  IFS="$IFS_BAK"
+  echo ""
+  local run_tracks_input
+  read -rp "  Enter tracks (space-separated, e.g. 2.7 2.8): " run_tracks_input
+  RUN_TRACKS="$run_tracks_input"
+  echo ""
+  local run_revisions_input
+  read -rp "  Enter commit SHAs to cherry-pick (used for all repos/tracks). Space-separated, or empty to skip: " run_revisions_input
+  RUN_REVISIONS="$run_revisions_input"
+
+  echo ""
+  echo "  $(_cyan "Upgrade ui-article in consuming repos (core/themes)?")"
+  echo "    [N] No — leave as-is   [S] Single version for all tracks   [P] Per-track mapping"
+  local run_article_choice
+  read -rp "  Choice [N/S/P]: " run_article_choice
+  RUN_ARTICLE_MODE="none"
+  case "${run_article_choice}" in
+    [sS]) RUN_ARTICLE_MODE="single"
+          read -rp "  ui-article version for all tracks (e.g. v6.6.6): " RUN_ARTICLE_VERSION
+          [ -n "$RUN_ARTICLE_VERSION" ] && [[ "$RUN_ARTICLE_VERSION" != v* ]] && RUN_ARTICLE_VERSION="v$RUN_ARTICLE_VERSION"
+          ;;
+    [pP]) RUN_ARTICLE_MODE="per-track"
+          RUN_ARTICLE_PER_TRACK=""
+          for t in $RUN_TRACKS; do
+            local art_track="v${t#v}"
+            local art_ver
+            read -rp "  ui-article version for track $art_track (e.g. v6.6.6, or empty to skip): " art_ver
+            [ -n "$art_ver" ] && [[ "$art_ver" != v* ]] && art_ver="v$art_ver"
+            [ -n "$art_ver" ] && RUN_ARTICLE_PER_TRACK="$RUN_ARTICLE_PER_TRACK ${art_track}=${art_ver}"
+          done
+          ;;
+    *)    RUN_ARTICLE_MODE="none" ;;
+  esac
+
+  if [ -z "$RUN_TRACKS" ]; then
+    echo ""; echo "  $(_yellow 'No tracks entered. Exiting.')"; exit 0
   fi
 
   # Process repos

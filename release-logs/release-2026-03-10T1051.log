@@ -1,0 +1,118 @@
+2026-03-10T10:51:42.872Z INFO   Release tool started
+  CMD: flags: {"dryRun":false,"verbose":false,"noColor":false,"logDir":"/Users/talazzeh/ui-workspace/auto_release/release-logs","lockPath":"/tmp/release-tool-ZMac-JLQKN2HKC0.local.lock","repoOverride":null}
+2026-03-10T10:51:42.901Z INFO   Engineer: 122722553+tazzeh-atypon@users.noreply.github.com
+2026-03-10T10:51:45.834Z INFO   Lock acquired
+2026-03-10T10:51:45.834Z INFO   Detected standing repo from CWD: ui-core (/Users/talazzeh/ui-workspace/ui-core)
+2026-03-10T10:51:45.851Z INFO   Path check: ui-core → /Users/talazzeh/ui-workspace/ui-core (OK)
+2026-03-10T10:51:45.851Z INFO   Path check: ui-theme-classic → /Users/talazzeh/ui-workspace/ui-theme-classic (OK)
+2026-03-10T10:51:45.851Z INFO   Path check: ui-theme-photo → /Users/talazzeh/ui-workspace/ui-theme-photo (OK)
+2026-03-10T10:51:45.851Z INFO   Selected repos: ui-core, ui-theme-classic, ui-theme-photo
+2026-03-10T10:51:45.853Z INFO  [ui-core] Processing repo: ui-core
+2026-03-10T10:51:45.919Z INFO  [ui-core] Checked out develop
+2026-03-10T10:51:48.461Z INFO  [ui-core] Pulled latest changes
+2026-03-10T10:51:50.978Z INFO  [ui-core] Fetched tags from remote
+2026-03-10T10:52:04.772Z INFO  [ui-core] Selected tracks: v2.7, v2.8
+2026-03-10T10:52:04.773Z INFO  [ui-core][v2.7] Processing track v2.7
+2026-03-10T10:52:07.260Z INFO  [ui-core][v2.7] Checked out v2.7.94
+2026-03-10T10:52:10.486Z INFO  [ui-core][v2.7] Cherry-picked c06bd3414d86cf7516260e5b982502dcb657c1ae
+2026-03-10T10:52:12.626Z INFO  [ui-core][v2.7] Using latest remote tag v2.7.128 for parent ui-base (Scenario C)
+2026-03-10T10:52:12.784Z INFO  [ui-core][v2.7] Bumped ui-base to git+ssh://git@github.com:atypon/ui-base.git#v2.7.128
+2026-03-10T10:52:24.691Z INFO   ui-article upgrade mode: none
+2026-03-10T10:52:27.331Z INFO  [ui-core][v2.7] npm install skipped by engineer
+2026-03-10T10:52:28.584Z INFO  [ui-core][v2.7] npm build skipped by engineer
+DIFF SUMMARY: ui-core v2.7.94 → v2.7.95 | 2 commits, 2 files, +2/-1
+2026-03-10T10:52:30.675Z INFO  [ui-core][v2.7] Tag v2.7.95 created locally
+2026-03-10T10:52:30.676Z INFO  [ui-core][v2.7] Detached HEAD — pushing tag only (no branch push)
+2026-03-10T10:52:33.196Z INFO  [ui-core][v2.7] Pushed tag v2.7.95
+2026-03-10T10:52:33.234Z INFO  [ui-core][v2.7] Deleted local tag v2.7.95 after push (legacy behavior)
+2026-03-10T10:52:33.234Z INFO  [ui-core][v2.7] Tag v2.7.95 created and pushed
+2026-03-10T10:52:33.327Z INFO  [ui-core][v2.7] Returned to develop
+2026-03-10T10:52:33.327Z INFO  [ui-core][v2.8] Processing track v2.8
+2026-03-10T10:52:35.821Z INFO  [ui-core][v2.8] Checked out v2.8.30
+2026-03-10T10:52:35.821Z INFO  [ui-core][v2.8] Using run-wide cherry-pick SHAs
+2026-03-10T10:52:35.890Z INFO  [ui-core][v2.8] Cherry-picked c06bd3414d86cf7516260e5b982502dcb657c1ae
+2026-03-10T10:52:37.928Z INFO  [ui-core][v2.8] Using latest remote tag v2.8.42 for parent ui-base (Scenario C)
+2026-03-10T10:52:38.086Z INFO  [ui-core][v2.8] Bumped ui-base to git+ssh://git@github.com:atypon/ui-base.git#v2.8.42
+2026-03-10T10:52:39.733Z INFO  [ui-core][v2.8] npm install skipped by engineer
+2026-03-10T10:52:40.582Z INFO  [ui-core][v2.8] npm build skipped by engineer
+DIFF SUMMARY: ui-core v2.8.30 → v2.8.31 | 2 commits, 2 files, +2/-1
+2026-03-10T10:52:42.337Z INFO  [ui-core][v2.8] Tag v2.8.31 created locally
+2026-03-10T10:52:42.337Z INFO  [ui-core][v2.8] Detached HEAD — pushing tag only (no branch push)
+2026-03-10T10:52:44.957Z INFO  [ui-core][v2.8] Pushed tag v2.8.31
+2026-03-10T10:52:44.996Z INFO  [ui-core][v2.8] Deleted local tag v2.8.31 after push (legacy behavior)
+2026-03-10T10:52:44.996Z INFO  [ui-core][v2.8] Tag v2.8.31 created and pushed
+2026-03-10T10:52:45.068Z INFO  [ui-core][v2.8] Returned to develop
+2026-03-10T10:52:45.068Z INFO   Head repo ui-core completed — processing children: ui-theme-classic, ui-theme-photo
+2026-03-10T10:52:45.068Z WARN  [ui-core] [legacy-bug] UpgradeTheme2.sh would have created tag "test2.7.95" instead of "v2.7.95"
+2026-03-10T10:52:45.068Z WARN  [ui-core] [legacy-bug] UpgradeTheme2.sh would have created tag "test2.8.31" instead of "v2.8.31"
+2026-03-10T10:52:45.068Z INFO  [ui-theme-classic] Processing repo: ui-theme-classic
+2026-03-10T10:52:45.114Z INFO  [ui-theme-classic] Checked out develop
+2026-03-10T10:52:47.495Z INFO  [ui-theme-classic] Pulled latest changes
+2026-03-10T10:52:49.825Z INFO  [ui-theme-classic] Fetched tags from remote
+2026-03-10T10:52:49.941Z INFO  [ui-theme-classic] Using run-wide tracks: v2.7, v2.8
+2026-03-10T10:52:49.941Z INFO  [ui-theme-classic][v2.7] Processing track v2.7
+2026-03-10T10:52:52.421Z INFO  [ui-theme-classic][v2.7] Checked out v2.7.78
+2026-03-10T10:52:52.421Z INFO  [ui-theme-classic][v2.7] Using run-wide cherry-pick SHAs
+2026-03-10T10:52:52.458Z ERROR [ui-theme-classic][v2.7] SHA c06bd3414d86cf7516260e5b982502dcb657c1ae not found in repo history
+2026-03-10T10:52:52.458Z WARN  [ui-theme-classic][v2.7] All SHAs were invalid, skipping cherry-pick
+2026-03-10T10:52:52.578Z INFO  [ui-theme-classic][v2.7] Bumped ui-core to git+ssh://git@github.com:atypon/ui-core.git#v2.7.95
+2026-03-10T10:53:36.928Z INFO  [ui-theme-classic][v2.7] npm install skipped by engineer
+2026-03-10T10:53:38.597Z INFO  [ui-theme-classic][v2.7] npm build skipped by engineer
+DIFF SUMMARY: ui-theme-classic v2.7.78 → v2.7.79 | 1 commits, 1 files, +1/-1
+2026-03-10T10:53:44.903Z INFO  [ui-theme-classic][v2.7] Tag v2.7.79 created locally
+2026-03-10T10:53:44.903Z INFO  [ui-theme-classic][v2.7] Detached HEAD — pushing tag only (no branch push)
+2026-03-10T10:53:47.201Z INFO  [ui-theme-classic][v2.7] Pushed tag v2.7.79
+2026-03-10T10:53:47.232Z INFO  [ui-theme-classic][v2.7] Deleted local tag v2.7.79 after push (legacy behavior)
+2026-03-10T10:53:47.233Z INFO  [ui-theme-classic][v2.7] Tag v2.7.79 created and pushed
+2026-03-10T10:53:47.297Z INFO  [ui-theme-classic][v2.7] Returned to develop
+2026-03-10T10:53:47.297Z INFO  [ui-theme-classic][v2.8] Processing track v2.8
+2026-03-10T10:53:49.626Z INFO  [ui-theme-classic][v2.8] Checked out v2.8.18
+2026-03-10T10:53:49.626Z INFO  [ui-theme-classic][v2.8] Using run-wide cherry-pick SHAs
+2026-03-10T10:53:49.651Z ERROR [ui-theme-classic][v2.8] SHA c06bd3414d86cf7516260e5b982502dcb657c1ae not found in repo history
+2026-03-10T10:53:49.651Z WARN  [ui-theme-classic][v2.8] All SHAs were invalid, skipping cherry-pick
+2026-03-10T10:53:49.754Z INFO  [ui-theme-classic][v2.8] Bumped ui-core to git+ssh://git@github.com:atypon/ui-core.git#v2.8.31
+2026-03-10T10:54:08.897Z INFO  [ui-theme-classic][v2.8] npm install skipped by engineer
+2026-03-10T10:54:10.009Z INFO  [ui-theme-classic][v2.8] npm build skipped by engineer
+DIFF SUMMARY: ui-theme-classic v2.8.18 → v2.8.19 | 1 commits, 1 files, +1/-1
+2026-03-10T10:54:11.747Z INFO  [ui-theme-classic][v2.8] Tag v2.8.19 created locally
+2026-03-10T10:54:11.747Z INFO  [ui-theme-classic][v2.8] Detached HEAD — pushing tag only (no branch push)
+2026-03-10T10:54:14.082Z INFO  [ui-theme-classic][v2.8] Pushed tag v2.8.19
+2026-03-10T10:54:14.124Z INFO  [ui-theme-classic][v2.8] Deleted local tag v2.8.19 after push (legacy behavior)
+2026-03-10T10:54:14.124Z INFO  [ui-theme-classic][v2.8] Tag v2.8.19 created and pushed
+2026-03-10T10:54:14.183Z INFO  [ui-theme-classic][v2.8] Returned to develop
+2026-03-10T10:54:14.183Z INFO  [ui-theme-photo] Processing repo: ui-theme-photo
+2026-03-10T10:54:14.365Z INFO  [ui-theme-photo] Checked out develop
+2026-03-10T10:54:16.770Z INFO  [ui-theme-photo] Pulled latest changes
+2026-03-10T10:54:18.988Z INFO  [ui-theme-photo] Fetched tags from remote
+2026-03-10T10:54:19.112Z INFO  [ui-theme-photo] Using run-wide tracks: v2.7, v2.8
+2026-03-10T10:54:19.112Z INFO  [ui-theme-photo][v2.7] Processing track v2.7
+2026-03-10T10:54:21.336Z INFO  [ui-theme-photo][v2.7] Checked out v2.7.96
+2026-03-10T10:54:21.336Z INFO  [ui-theme-photo][v2.7] Using run-wide cherry-pick SHAs
+2026-03-10T10:54:21.368Z ERROR [ui-theme-photo][v2.7] SHA c06bd3414d86cf7516260e5b982502dcb657c1ae not found in repo history
+2026-03-10T10:54:21.368Z WARN  [ui-theme-photo][v2.7] All SHAs were invalid, skipping cherry-pick
+2026-03-10T10:54:21.493Z INFO  [ui-theme-photo][v2.7] Bumped ui-core to git+ssh://git@github.com:atypon/ui-core.git#v2.7.95
+2026-03-10T10:54:57.040Z INFO  [ui-theme-photo][v2.7] npm install skipped by engineer
+2026-03-10T10:54:58.159Z INFO  [ui-theme-photo][v2.7] npm build skipped by engineer
+DIFF SUMMARY: ui-theme-photo v2.7.96 → v2.7.97 | 1 commits, 1 files, +1/-1
+2026-03-10T10:54:59.355Z INFO  [ui-theme-photo][v2.7] Tag v2.7.97 created locally
+2026-03-10T10:54:59.355Z INFO  [ui-theme-photo][v2.7] Detached HEAD — pushing tag only (no branch push)
+2026-03-10T10:55:01.996Z INFO  [ui-theme-photo][v2.7] Pushed tag v2.7.97
+2026-03-10T10:55:02.039Z INFO  [ui-theme-photo][v2.7] Deleted local tag v2.7.97 after push (legacy behavior)
+2026-03-10T10:55:02.040Z INFO  [ui-theme-photo][v2.7] Tag v2.7.97 created and pushed
+2026-03-10T10:55:02.147Z INFO  [ui-theme-photo][v2.7] Returned to develop
+2026-03-10T10:55:02.148Z INFO  [ui-theme-photo][v2.8] Processing track v2.8
+2026-03-10T10:55:04.513Z INFO  [ui-theme-photo][v2.8] Checked out v2.8.30
+2026-03-10T10:55:04.513Z INFO  [ui-theme-photo][v2.8] Using run-wide cherry-pick SHAs
+2026-03-10T10:55:04.540Z ERROR [ui-theme-photo][v2.8] SHA c06bd3414d86cf7516260e5b982502dcb657c1ae not found in repo history
+2026-03-10T10:55:04.540Z WARN  [ui-theme-photo][v2.8] All SHAs were invalid, skipping cherry-pick
+2026-03-10T10:55:04.648Z INFO  [ui-theme-photo][v2.8] Bumped ui-core to git+ssh://git@github.com:atypon/ui-core.git#v2.8.31
+2026-03-10T10:55:40.409Z INFO  [ui-theme-photo][v2.8] npm install skipped by engineer
+2026-03-10T10:55:41.341Z INFO  [ui-theme-photo][v2.8] npm build skipped by engineer
+DIFF SUMMARY: ui-theme-photo v2.8.30 → v2.8.31 | 1 commits, 1 files, +1/-1
+2026-03-10T10:55:42.669Z INFO  [ui-theme-photo][v2.8] Tag v2.8.31 created locally
+2026-03-10T10:55:42.669Z INFO  [ui-theme-photo][v2.8] Detached HEAD — pushing tag only (no branch push)
+2026-03-10T10:55:45.193Z INFO  [ui-theme-photo][v2.8] Pushed tag v2.8.31
+2026-03-10T10:55:45.229Z INFO  [ui-theme-photo][v2.8] Deleted local tag v2.8.31 after push (legacy behavior)
+2026-03-10T10:55:45.230Z INFO  [ui-theme-photo][v2.8] Tag v2.8.31 created and pushed
+2026-03-10T10:55:45.313Z INFO  [ui-theme-photo][v2.8] Returned to develop
+2026-03-10T10:55:45.315Z INFO   Lock released

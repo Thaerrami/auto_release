@@ -52,6 +52,9 @@ export const msg = {
   trackSelect: (repoId: string) =>
     c(chalk.cyan, `\nSelect version tracks for ${repoId}:\n`),
 
+  trackSelectOnce: () =>
+    c(chalk.cyan, '\nSelect version tracks (used for all repos in this run):\n'),
+
   trackInfo: (track: string, latest: string, date: string) =>
     `${track} — latest: ${c(chalk.white.bold, latest)} (${c(chalk.dim, date)})`,
 
@@ -82,6 +85,9 @@ export const msg = {
   cherryPickPrompt: () =>
     `\nEnter commit SHAs to cherry-pick (space-separated, SHA..SHA range, or empty to skip): `,
 
+  cherryPickPromptAll: () =>
+    `\nEnter commit SHAs to cherry-pick (used for all repos/tracks). Space-separated, or empty to skip: `,
+
   cherryPickShaNotFound: (sha: string) =>
     c(chalk.yellow, `  ⚠  SHA ${sha} not found in repo history — skipping`),
 
@@ -91,20 +97,25 @@ export const msg = {
     c(chalk.yellow, '\n  Resolve conflicts in your editor, run "git add <files>",\n') +
     c(chalk.yellow, '  then press ENTER to continue, or type ABORT to cancel this track.\n'),
 
+  installPrompt: () =>
+    `\n  Run npm install? [Y] Yes  [S] Skip  `,
+
   installRunning: (repoId: string) => `  Running npm install in ${repoId}...`,
 
   installFailed: (output: string) =>
     c(chalk.red.bold, '\n✗  npm install failed:\n') +
     output +
-    c(chalk.yellow, '\n  Fix the issue, then press ENTER to retry, or type ABORT to cancel this repo.\n'),
+    c(chalk.yellow, '\n  Press ENTER to retry, type SKIP to skip, or ABORT to cancel this repo.\n'),
+
+  buildPrompt: () =>
+    `\n  Run npm run build? [Y] Yes  [S] Skip  `,
 
   buildRunning: (repoId: string) => `  Running npm run build in ${repoId}...`,
 
   buildFailed: (output: string) =>
     c(chalk.red.bold, '\n✗  npm run build failed:\n') +
     output +
-    c(chalk.yellow, '\n  Fix the build error, press ENTER to retry,\n') +
-    c(chalk.yellow, '  type SKIP to skip build (logged as warning), or ABORT to cancel this repo.\n'),
+    c(chalk.yellow, '\n  Press ENTER to retry, type SKIP to skip, or ABORT to cancel this repo.\n'),
 
   pushRejected: (errorType: string) => {
     switch (errorType) {
@@ -166,4 +177,16 @@ export const msg = {
 
   childCherryPickPrompt: (repoId: string) =>
     `\nEnter cherry-pick SHAs for ${c(chalk.white.bold, repoId)} (space-separated, or empty to skip): `,
+
+  articleUpgradePrompt: () =>
+    c(chalk.cyan, '\nUpgrade ui-article in consuming repos (core/themes)?\n') +
+    '  [N] No — leave ui-article as-is in package.json\n' +
+    '  [S] Yes — single version for all tracks (e.g. v6.6.6)\n' +
+    '  [P] Per-track — map each track to a ui-article version\n',
+
+  articleVersionSingle: () =>
+    '  Enter ui-article version/tag for all tracks (e.g. v6.6.6): ',
+
+  articleVersionForTrack: (track: string) =>
+    `  ui-article version for track ${track} (e.g. v6.6.6, or empty to skip): `,
 };

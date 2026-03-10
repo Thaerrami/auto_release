@@ -36,6 +36,7 @@ exports.msg = {
     dirtyTree: (files) => c(chalk_1.default.yellow.bold, '\n⚠  Working tree has uncommitted changes:\n') + files,
     dirtyActions: () => `\n  [S] Stash  [P] Proceed with warning  [A] Abort this repo\n`,
     trackSelect: (repoId) => c(chalk_1.default.cyan, `\nSelect version tracks for ${repoId}:\n`),
+    trackSelectOnce: () => c(chalk_1.default.cyan, '\nSelect version tracks (used for all repos in this run):\n'),
     trackInfo: (track, latest, date) => `${track} — latest: ${c(chalk_1.default.white.bold, latest)} (${c(chalk_1.default.dim, date)})`,
     newTrackOption: () => '+ Enter new track manually',
     computedTag: (track, newTag) => `  ${c(chalk_1.default.green, '→')} Track ${c(chalk_1.default.white.bold, track)}: next tag = ${c(chalk_1.default.green.bold, newTag)}`,
@@ -49,20 +50,22 @@ exports.msg = {
     depVersionDrift: (pkgKey, current, newVer) => c(chalk_1.default.yellow, `\n⚠  Current version of ${pkgKey} is ${current}, which is ahead of new tag ${newVer}.\n`) +
         `   Overwrite?`,
     cherryPickPrompt: () => `\nEnter commit SHAs to cherry-pick (space-separated, SHA..SHA range, or empty to skip): `,
+    cherryPickPromptAll: () => `\nEnter commit SHAs to cherry-pick (used for all repos/tracks). Space-separated, or empty to skip: `,
     cherryPickShaNotFound: (sha) => c(chalk_1.default.yellow, `  ⚠  SHA ${sha} not found in repo history — skipping`),
     cherryPickConflict: (sha, files) => c(chalk_1.default.red.bold, `\n✗  Cherry-pick conflict on ${sha}:\n`) +
         files +
         c(chalk_1.default.yellow, '\n  Resolve conflicts in your editor, run "git add <files>",\n') +
         c(chalk_1.default.yellow, '  then press ENTER to continue, or type ABORT to cancel this track.\n'),
+    installPrompt: () => `\n  Run npm install? [Y] Yes  [S] Skip  `,
     installRunning: (repoId) => `  Running npm install in ${repoId}...`,
     installFailed: (output) => c(chalk_1.default.red.bold, '\n✗  npm install failed:\n') +
         output +
-        c(chalk_1.default.yellow, '\n  Fix the issue, then press ENTER to retry, or type ABORT to cancel this repo.\n'),
+        c(chalk_1.default.yellow, '\n  Press ENTER to retry, type SKIP to skip, or ABORT to cancel this repo.\n'),
+    buildPrompt: () => `\n  Run npm run build? [Y] Yes  [S] Skip  `,
     buildRunning: (repoId) => `  Running npm run build in ${repoId}...`,
     buildFailed: (output) => c(chalk_1.default.red.bold, '\n✗  npm run build failed:\n') +
         output +
-        c(chalk_1.default.yellow, '\n  Fix the build error, press ENTER to retry,\n') +
-        c(chalk_1.default.yellow, '  type SKIP to skip build (logged as warning), or ABORT to cancel this repo.\n'),
+        c(chalk_1.default.yellow, '\n  Press ENTER to retry, type SKIP to skip, or ABORT to cancel this repo.\n'),
     pushRejected: (errorType) => {
         switch (errorType) {
             case 'non-fast-forward':
@@ -96,5 +99,11 @@ exports.msg = {
     consumeThemesBeforeDefine: () => c(chalk_1.default.yellow, '  ⚠  [legacy-bug] consumeThemes() invoked before function definition — would fail at runtime in bash\n'),
     eurekaSpecialMode: (majors) => c(chalk_1.default.dim, `  [eureka-special] Processing major versions: ${majors}\n`),
     childCherryPickPrompt: (repoId) => `\nEnter cherry-pick SHAs for ${c(chalk_1.default.white.bold, repoId)} (space-separated, or empty to skip): `,
+    articleUpgradePrompt: () => c(chalk_1.default.cyan, '\nUpgrade ui-article in consuming repos (core/themes)?\n') +
+        '  [N] No — leave ui-article as-is in package.json\n' +
+        '  [S] Yes — single version for all tracks (e.g. v6.6.6)\n' +
+        '  [P] Per-track — map each track to a ui-article version\n',
+    articleVersionSingle: () => '  Enter ui-article version/tag for all tracks (e.g. v6.6.6): ',
+    articleVersionForTrack: (track) => `  ui-article version for track ${track} (e.g. v6.6.6, or empty to skip): `,
 };
 //# sourceMappingURL=messages.js.map

@@ -8,6 +8,10 @@ export interface RepoConfig {
     baseBranch: string;
     gitRemoteUrl: string;
     consumesArticle: boolean;
+    /** When this repo is released, only these children get upgraded. If unset, uses all deps that list this repo. */
+    cascadeChildren?: string[];
+    /** Exclude from release cascade (e.g. ui-products has no tags). */
+    excludeFromRelease?: boolean;
 }
 export interface RunContext {
     dryRun: boolean;
@@ -22,6 +26,16 @@ export interface RunContext {
     runId: string;
     startedAt: string;
     selectedRepos: RepoConfig[];
+    /** Tracks selected once for the whole run (e.g. v2.7, v2.8); used for all repos. */
+    selectedTracks?: string[];
+    /** Cherry-pick SHAs entered once; used for all repos/tracks. */
+    cherryPickShas?: string[];
+    /** ui-article upgrade: 'none' = leave as-is, 'single' = one version for all tracks, 'per-track' = map track → version. */
+    articleUpgradeMode?: 'none' | 'single' | 'per-track';
+    /** When articleUpgradeMode === 'single', version/tag to set (e.g. v6.6.6). */
+    articleVersion?: string;
+    /** When articleUpgradeMode === 'per-track', map track (e.g. v2.7) → ui-article version/tag. */
+    articleVersionByTrack?: Record<string, string>;
 }
 export interface LogEntry {
     timestamp: string;

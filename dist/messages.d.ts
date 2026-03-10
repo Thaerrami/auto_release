@@ -12,6 +12,7 @@ export declare const msg: {
     dirtyTree: (files: string) => string;
     dirtyActions: () => string;
     trackSelect: (repoId: string) => string;
+    trackSelectOnce: () => string;
     trackInfo: (track: string, latest: string, date: string) => string;
     newTrackOption: () => string;
     computedTag: (track: string, newTag: string) => string;
@@ -21,10 +22,13 @@ export declare const msg: {
     depKeyMissing: (depId: string, pkgKey: string, availableKeys: string[]) => string;
     depVersionDrift: (pkgKey: string, current: string, newVer: string) => string;
     cherryPickPrompt: () => string;
+    cherryPickPromptAll: () => string;
     cherryPickShaNotFound: (sha: string) => string;
     cherryPickConflict: (sha: string, files: string) => string;
+    installPrompt: () => string;
     installRunning: (repoId: string) => string;
     installFailed: (output: string) => string;
+    buildPrompt: () => string;
     buildRunning: (repoId: string) => string;
     buildFailed: (output: string) => string;
     pushRejected: (errorType: string) => string;
@@ -42,5 +46,8 @@ export declare const msg: {
     consumeThemesBeforeDefine: () => string;
     eurekaSpecialMode: (majors: string) => string;
     childCherryPickPrompt: (repoId: string) => string;
+    articleUpgradePrompt: () => string;
+    articleVersionSingle: () => string;
+    articleVersionForTrack: (track: string) => string;
 };
 //# sourceMappingURL=messages.d.ts.map

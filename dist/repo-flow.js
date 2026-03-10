@@ -90,8 +90,20 @@ async function repoReleaseFlow(repo, context, gitClient, logger, stateManager) {
     if (dirtyAction === 'stash') {
         result.stashed = true;
     }
-    // Step 2: Version track selection
-    const tracks = await selectVersionTracks(repo, gitClient, logger);
+    // Step 2: Version track selection — once per run for all repos (use context.selectedTracks if set)
+    let tracks;
+    if (context.selectedTracks && context.selectedTracks.length > 0) {
+        tracks = context.selectedTracks;
+        console.log(chalk_1.default.cyan(`\n  Using tracks for all repos: ${tracks.join(', ')}\n`));
+        logger.info(`Using run-wide tracks: ${tracks.join(', ')}`, { repo: repo.id });
+    }
+    else {
+        const forAllRepos = true; // first prompt applies to all repos
+        tracks = await selectVersionTracks(repo, gitClient, logger, forAllRepos);
+        if (tracks.length > 0) {
+            context.selectedTracks = tracks;
+        }
+    }
     if (tracks.length === 0) {
         result.status = 'skipped';
         logger.info('No tracks selected', { repo: repo.id });
@@ -179,7 +191,7 @@ async function handleDirtyTree(repo, context, gitClient, logger, stateManager) {
     stateManager.recordStep(repo.id, '_', 'dirty-check', 'skipped', 'aborted');
     return 'abort';
 }
-async function selectVersionTracks(repo, gitClient, logger) {
+async function selectVersionTracks(repo, gitClient, logger, forAllRepos = false) {
     const tags = await gitClient.tagList(repo.localPath);
     const trackMap = (0, version_1.groupTagsByTrack)(tags);
     const trackChoices = [];
@@ -201,7 +213,7 @@ async function selectVersionTracks(repo, gitClient, logger) {
     }
     trackChoices.sort((a, b) => a.value.localeCompare(b.value));
     trackChoices.push({ name: messages_1.msg.newTrackOption(), value: '__new__' });
-    console.log(messages_1.msg.trackSelect(repo.id));
+    console.log(forAllRepos ? messages_1.msg.trackSelectOnce() : messages_1.msg.trackSelect(repo.id));
     const { selectedTracks } = await inquirer_1.default.prompt([{
             type: 'checkbox',
             name: 'selectedTracks',
@@ -292,13 +304,8 @@ async function processTrack(repo, track, context, gitClient, logger, stateManage
             console.log(messages_1.msg.dryRunSkip(`git tag ${newTag} (before cherry-pick — article legacy behavior)`));
         }
     }
-    // 3b: Bump parent dependency
-    if (!stateManager.isStepCompleted(repo.id, track, 'dep-bump')) {
-        const bumped = await (0, dep_bump_1.bumpParentDependency)(repo, track, context, gitClient, logger);
-        result.depsBumped = bumped;
-        stateManager.recordStep(repo.id, track, 'dep-bump', 'success');
-    }
-    // 3c + 3d: Cherry-pick
+    // 3b: Cherry-pick first — so package.json dep-bump never conflicts.
+    // Dep-bump is always a controlled edit; cherry-pick may touch package.json too.
     if (!stateManager.isStepCompleted(repo.id, track, 'cherry-pick')) {
         const cpResult = await (0, cherry_pick_1.performCherryPicks)(repo.localPath, repo.id, track, gitClient, context, logger);
         result.cherryPicks = cpResult.shas;
@@ -310,29 +317,35 @@ async function processTrack(repo, track, context, gitClient, logger, stateManage
         }
         stateManager.recordStep(repo.id, track, 'cherry-pick', 'success');
     }
-    // 3e: npm install
+    // 3c: Bump parent dependency — done after cherry-pick so it never conflicts.
+    if (!stateManager.isStepCompleted(repo.id, track, 'dep-bump')) {
+        const bumped = await (0, dep_bump_1.bumpParentDependency)(repo, track, context, gitClient, logger);
+        result.depsBumped = bumped;
+        stateManager.recordStep(repo.id, track, 'dep-bump', 'success');
+    }
+    // 3e: npm install (optional — engineer can skip)
     if (!stateManager.isStepCompleted(repo.id, track, 'npm-install')) {
         const installResult = await (0, build_1.runInstall)(repo.localPath, repo.id, track, context, logger);
-        if (installResult.aborted) {
-            result.errors.push('npm install aborted');
-            result.status = 'failed';
-            stateManager.recordStep(repo.id, track, 'npm-install', 'failed');
-            return result;
+        if (installResult.skipped) {
+            stateManager.recordStep(repo.id, track, 'npm-install', 'skipped');
         }
-        stateManager.recordStep(repo.id, track, 'npm-install', 'success');
+        else if (installResult.aborted) {
+            result.errors.push('npm install aborted');
+            stateManager.recordStep(repo.id, track, 'npm-install', 'failed');
+        }
+        else {
+            stateManager.recordStep(repo.id, track, 'npm-install', 'success');
+        }
     }
-    // 3f: npm run build
+    // 3f: npm run build (optional — engineer can skip)
     if (!stateManager.isStepCompleted(repo.id, track, 'npm-build')) {
         const buildResult = await (0, build_1.runBuild)(repo.localPath, repo.id, track, context, logger);
-        if (buildResult.aborted) {
-            result.errors.push('npm build aborted');
-            result.status = 'failed';
-            stateManager.recordStep(repo.id, track, 'npm-build', 'failed');
-            return result;
-        }
         if (buildResult.skipped) {
-            logger.warn('Build skipped by engineer', { repo: repo.id, track });
             stateManager.recordStep(repo.id, track, 'npm-build', 'skipped');
+        }
+        else if (buildResult.aborted) {
+            result.errors.push('npm build aborted');
+            stateManager.recordStep(repo.id, track, 'npm-build', 'failed');
         }
         else {
             stateManager.recordStep(repo.id, track, 'npm-build', 'success');

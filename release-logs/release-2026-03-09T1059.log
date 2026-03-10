@@ -1,9 +1,0 @@
-2026-03-09T10:59:08.410Z INFO   Release tool started
-  CMD: flags: {"dryRun":true,"verbose":false,"noColor":true,"logDir":"/Users/talazzeh/ui-workspace/auto_release/release-logs","lockPath":"/tmp/release-tool-ZMac-JLQKN2HKC0.local.lock"}
-2026-03-09T10:59:08.410Z INFO   Path check: ui-base → /Users/talazzeh/ui-workspace/ui-base (OK)
-2026-03-09T10:59:08.410Z INFO   Path check: ui-core → /Users/talazzeh/ui-workspace/ui-core (OK)
-2026-03-09T10:59:08.410Z INFO   Path check: ui-theme-photo → /Users/talazzeh/ui-workspace/ui-theme-photo (OK)
-2026-03-09T10:59:08.410Z INFO   Path check: ui-theme-classic → /Users/talazzeh/ui-workspace/ui-theme-classic (OK)
-2026-03-09T10:59:08.410Z INFO   Path check: ui-theme-eureka → /Users/talazzeh/ui-workspace/ui-theme-eureka (OK)
-2026-03-09T10:59:08.411Z INFO   Path check: ui-article → /Users/talazzeh/ui-workspace/ui-article (OK)
-2026-03-09T10:59:08.433Z INFO   Engineer: 122722553+tazzeh-atypon@users.noreply.github.com

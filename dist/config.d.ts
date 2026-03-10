@@ -3,14 +3,17 @@ import { RepoConfig } from './types';
  * Dependency tree:
  *
  *   ui-base (layer 1)
- *   ├── ui-core (layer 2)
+ *   ├── ui-core (layer 2) — hotfix on core cascades to photo + classic only
  *   │   ├── ui-theme-photo (layer 3)
  *   │   ├── ui-theme-classic (layer 3)
  *   │   ├── ui-theme-nextgen (layer 3)
- *   │   └── ui-products (layer 3)
+ *   │   └── ui-products (layer 3) — no tags, excluded from release
  *   └── ui-theme-eureka (layer 2)
  *
  *   ui-article (layer 0, independent versioning)
+ *
+ * Hotfix flow: when change is in ui-core, process ui-core only, then upgrade
+ * ui-theme-photo and ui-theme-classic (not ui-base, ui-theme-eureka, ui-products, ui-theme-nextgen).
  */
 export declare const REPOS: RepoConfig[];
 export declare const ARTICLE_REMOTE_URL = "git@github.com:atypon/ui-article.git";
@@ -24,12 +27,13 @@ export declare function sortReposByDependencyOrder(repos: RepoConfig[]): RepoCon
  */
 export declare function detectStandingRepo(cwd: string): RepoConfig | null;
 /**
- * BFS from a starting repo, collecting it and all descendants
- * (repos that depend on it, directly or transitively), in dependency order.
+ * BFS from a starting repo, collecting it and descendants to upgrade.
+ * Uses cascadeChildren when set (e.g. ui-core → only [ui-theme-photo, ui-theme-classic]).
+ * Excludes repos with excludeFromRelease (e.g. ui-products has no tags).
  *
  * Examples:
- *   ui-base  → [ui-base, ui-core, ui-theme-eureka, ui-products, ui-theme-classic, ui-theme-nextgen, ui-theme-photo]
- *   ui-core  → [ui-core, ui-products, ui-theme-classic, ui-theme-nextgen, ui-theme-photo]
+ *   ui-base  → [ui-base, ui-core, ui-theme-eureka, ui-theme-photo, ui-theme-classic]
+ *   ui-core  → [ui-core, ui-theme-photo, ui-theme-classic]  (not ui-products, ui-theme-nextgen)
  *   ui-theme-photo → [ui-theme-photo]
  *   ui-article     → [ui-article]
  */

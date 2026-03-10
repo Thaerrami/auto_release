@@ -13,8 +13,8 @@ export declare function validateRepoPaths(repos: RepoConfig[], logger: Logger): 
  * The old script always started from the CWD repo and cascaded downward.
  *
  * Examples:
- *   CWD = ui-core  → processes: ui-core, ui-theme-photo, ui-theme-classic
- *   CWD = ui-base  → processes: ui-base, ui-core, ui-theme-eureka, ui-theme-photo, ui-theme-classic
+ *   CWD = ui-core  → processes: ui-core, ui-theme-photo, ui-theme-classic (hotfix: no ui-base, ui-products, ui-theme-nextgen)
+ *   CWD = ui-base  → processes: ui-base, ui-core, ui-theme-eureka, ui-theme-photo, ui-theme-classic (no ui-products)
  *   CWD = ui-theme-photo → processes: ui-theme-photo (leaf, no children)
  *   CWD = ui-article → processes: ui-article (independent, no children)
  */

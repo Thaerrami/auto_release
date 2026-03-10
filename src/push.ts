@@ -32,24 +32,29 @@ export async function pushChanges(
     logger.info(`Tag ${newTag} created locally`, { repo: repoId, track });
   }
 
-  const branchResult = await pushWithRetry(
-    () => gitClient.push(repoPath, branch),
-    repoPath,
-    repoId,
-    track,
-    branch,
-    'branch',
-    gitClient,
-    logger
-  );
-
-  if (!branchResult.success) {
-    if (branchResult.manual) {
-      logger.warn(`Push of ${branch} marked as manual (protected branch)`, { repo: repoId, track });
-    } else {
+  // When we're in detached HEAD (e.g. checked out a tag for hotfix), skip branch push — only push the tag.
+  const isDetachedHead = branch === 'HEAD';
+  let branchResult = { success: true, manual: false as boolean };
+  if (!isDetachedHead) {
+    branchResult = await pushWithRetry(
+      () => gitClient.push(repoPath, branch),
+      repoPath,
+      repoId,
+      track,
+      branch,
+      'branch',
+      gitClient,
+      logger
+    );
+    if (!branchResult.success && !branchResult.manual) {
       logger.error(`Push of ${branch} failed`, { repo: repoId, track });
       return branchResult;
     }
+    if (branchResult.manual) {
+      logger.warn(`Push of ${branch} marked as manual (protected branch)`, { repo: repoId, track });
+    }
+  } else {
+    logger.info(`Detached HEAD — pushing tag only (no branch push)`, { repo: repoId, track });
   }
 
   const tagResult = await pushWithRetry(

@@ -6,12 +6,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseFlags = parseFlags;
 const os_1 = __importDefault(require("os"));
 const path_1 = __importDefault(require("path"));
+/** Tool root (auto_release) — logs stay here, never in the repos being released. */
+function getToolRoot() {
+    return path_1.default.resolve(__dirname, '..');
+}
 function parseFlags(argv) {
+    const toolRoot = getToolRoot();
     const flags = {
         dryRun: false,
         verbose: false,
         noColor: false,
-        logDir: path_1.default.resolve(process.cwd(), 'release-logs'),
+        logDir: path_1.default.join(toolRoot, 'release-logs'),
         lockPath: `/tmp/release-tool-${os_1.default.hostname()}.lock`,
         repoOverride: null,
     };

@@ -24,6 +24,19 @@ function buildGitSshDepValue(remoteUrl, tag) {
 function isGitSshFormat(value) {
     return value.startsWith('git+ssh://') || value.startsWith('git://');
 }
+/** Escape special regex characters in a string for use in RegExp. */
+function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+/** Replace only the dependency value in raw package.json to preserve indentation and formatting. */
+function replaceDepValueInRawPackageJson(raw, key, oldValue, newValue) {
+    const escapedKey = escapeRegex(key);
+    const escapedOld = escapeRegex(oldValue);
+    // Match "key": "oldValue" (double-quoted value, flexible whitespace)
+    const pattern = new RegExp(`("${escapedKey}"\\s*:\\s*")${escapedOld}(")`, 'g');
+    const replacementValue = newValue.replace(/\$/g, '$$'); // escape $ for replace
+    return raw.replace(pattern, `$1${replacementValue}$2`);
+}
 async function bumpParentDependency(repo, track, context, gitClient, logger) {
     const bumped = {};
     for (const depId of repo.deps) {
@@ -61,18 +74,77 @@ async function bumpParentDependency(repo, track, context, gitClient, logger) {
         }
         await doBump(repo, depId, pkgKey, newTag, parentRepo?.gitRemoteUrl ?? '', track, context, gitClient, logger, bumped);
     }
-    // Handle ui-article consumption (matches upgradeArticle.sh consumeThemes
-    // and UpdateTheme2.sh which bumps ui-article in theme/core repos)
+    // ui-article: only bump if user chose to upgrade and provided version(s)
     if (repo.consumesArticle) {
+        await ensureArticleUpgradeChoice(context, logger);
         await bumpArticleDependency(repo, track, context, gitClient, logger, bumped);
     }
     return bumped;
 }
+/** Prompt once for ui-article upgrade mode and version(s); store in context. */
+async function ensureArticleUpgradeChoice(context, logger) {
+    if (context.articleUpgradeMode !== undefined)
+        return;
+    console.log(messages_1.msg.articleUpgradePrompt());
+    const { mode } = await inquirer_1.default.prompt([{
+            type: 'list',
+            name: 'mode',
+            message: 'Choose:',
+            choices: [
+                { name: 'No — leave ui-article as-is', value: 'none' },
+                { name: 'Yes — single version for all tracks', value: 'single' },
+                { name: 'Per-track mapping', value: 'per-track' },
+            ],
+        }]);
+    context.articleUpgradeMode = mode;
+    logger.info(`ui-article upgrade mode: ${mode}`, {});
+    if (mode === 'single') {
+        const { version } = await inquirer_1.default.prompt([{
+                type: 'input',
+                name: 'version',
+                message: messages_1.msg.articleVersionSingle(),
+                validate: (v) => (v.trim() ? true : 'Enter a version/tag (e.g. v6.6.6)'),
+            }]);
+        context.articleVersion = version.trim().startsWith('v') ? version.trim() : `v${version.trim()}`;
+        logger.info(`ui-article single version: ${context.articleVersion}`, {});
+    }
+    else if (mode === 'per-track') {
+        const tracks = context.selectedTracks ?? [];
+        context.articleVersionByTrack = {};
+        for (const track of tracks) {
+            const { version } = await inquirer_1.default.prompt([{
+                    type: 'input',
+                    name: 'version',
+                    message: messages_1.msg.articleVersionForTrack(track),
+                }]);
+            const v = version.trim();
+            if (v) {
+                context.articleVersionByTrack[track] = v.startsWith('v') ? v : `v${v}`;
+            }
+        }
+        logger.info(`ui-article per-track: ${JSON.stringify(context.articleVersionByTrack)}`, {});
+    }
+}
 async function bumpArticleDependency(repo, track, context, gitClient, logger, bumped) {
+    if (context.articleUpgradeMode === 'none' || context.articleUpgradeMode === undefined) {
+        return;
+    }
+    let targetTag = null;
+    if (context.articleUpgradeMode === 'single' && context.articleVersion) {
+        targetTag = context.articleVersion;
+    }
+    else if (context.articleUpgradeMode === 'per-track' && context.articleVersionByTrack?.[track]) {
+        targetTag = context.articleVersionByTrack[track];
+    }
+    if (!targetTag) {
+        logger.info(`No ui-article version selected for track ${track}, skipping`, { repo: repo.id, track });
+        return;
+    }
     const pkgJsonPath = path_1.default.join(repo.localPath, 'package.json');
     if (!fs_1.default.existsSync(pkgJsonPath))
         return;
-    const pkgJson = JSON.parse(fs_1.default.readFileSync(pkgJsonPath, 'utf-8'));
+    const rawPkg = fs_1.default.readFileSync(pkgJsonPath, 'utf-8');
+    const pkgJson = JSON.parse(rawPkg);
     const depSections = ['dependencies', 'devDependencies', 'peerDependencies'];
     let currentValue = null;
     let sectionKey = null;
@@ -88,48 +160,27 @@ async function bumpArticleDependency(repo, track, context, gitClient, logger, bu
     if (!currentValue || !sectionKey) {
         return;
     }
-    // Look up latest remote ui-article tag (matches upgradeArticle.sh line 100)
-    let latestArticleTag = null;
-    // First check if ui-article was released in this run
-    const articleTags = context.tagsCreated.get('ui-article');
-    if (articleTags && articleTags.length > 0) {
-        latestArticleTag = articleTags[articleTags.length - 1];
-    }
-    else {
-        try {
-            const remoteTags = await gitClient.lsRemoteTags(repo.localPath, config_1.ARTICLE_REMOTE_URL);
-            if (remoteTags.length > 0) {
-                latestArticleTag = remoteTags[remoteTags.length - 1];
-            }
-        }
-        catch (err) {
-            logger.warn(`ls-remote for ui-article failed: ${err instanceof Error ? err.message : String(err)}`, { repo: repo.id, track });
-        }
-    }
-    if (!latestArticleTag)
-        return;
+    const newVersion = targetTag.replace(/^v/, '');
     const currentVersion = extractVersionFromGitSsh(currentValue);
-    const newVersion = latestArticleTag.replace(/^v/, '');
     if (currentVersion === newVersion) {
-        console.log(chalk_1.default.dim(`  ui-article is already at ${latestArticleTag}, skipping update.`));
-        logger.info(`ui-article already at ${latestArticleTag}`, { repo: repo.id, track });
+        console.log(chalk_1.default.dim(`  ui-article is already at ${targetTag}, skipping update.`));
+        logger.info(`ui-article already at ${targetTag}`, { repo: repo.id, track });
         return;
     }
     const newDepValue = isGitSshFormat(currentValue)
-        ? buildGitSshDepValue('git@github.com:atypon/ui-article.git', latestArticleTag)
-        : latestArticleTag.replace(/^v/, '');
+        ? buildGitSshDepValue('git@github.com:atypon/ui-article.git', targetTag)
+        : newVersion;
     if (context.dryRun) {
-        console.log(messages_1.msg.dryRunSkip(`Update ui-article to ${latestArticleTag} in ${pkgJsonPath}`));
+        console.log(messages_1.msg.dryRunSkip(`Update ui-article to ${targetTag} in ${pkgJsonPath}`));
         bumped['ui-article'] = newVersion;
         return;
     }
     console.log(messages_1.msg.depBump('ui-article', articleKey, currentValue, newDepValue));
-    const deps = pkgJson[sectionKey];
-    deps[articleKey] = newDepValue;
-    fs_1.default.writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + '\n', 'utf-8');
+    const newContent = replaceDepValueInRawPackageJson(rawPkg, articleKey, currentValue, newDepValue);
+    fs_1.default.writeFileSync(pkgJsonPath, newContent, 'utf-8');
     await gitClient.add(repo.localPath, ['package.json']);
-    await gitClient.commitAll(repo.localPath, `Upgrade ui-article to ${latestArticleTag}`);
-    logger.info(`Bumped ui-article to ${latestArticleTag}`, { repo: repo.id, track });
+    await gitClient.commitAll(repo.localPath, `Upgrade ui-article to ${targetTag}`);
+    logger.info(`Bumped ui-article to ${targetTag}`, { repo: repo.id, track });
     bumped['ui-article'] = newVersion;
 }
 async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, context, gitClient, logger, bumped) {
@@ -138,7 +189,8 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
         logger.error(`package.json not found at ${pkgJsonPath}`, { repo: repo.id, track });
         return;
     }
-    const pkgJson = JSON.parse(fs_1.default.readFileSync(pkgJsonPath, 'utf-8'));
+    const rawPkg = fs_1.default.readFileSync(pkgJsonPath, 'utf-8');
+    const pkgJson = JSON.parse(rawPkg);
     const depSections = ['dependencies', 'devDependencies', 'peerDependencies'];
     let found = false;
     let currentValue = null;
@@ -232,9 +284,9 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
         return;
     }
     console.log(messages_1.msg.depBump(depId, actualKey, currentValue ?? 'none', newDepValue));
-    const deps = pkgJson[sectionKey];
-    deps[actualKey] = newDepValue;
-    fs_1.default.writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + '\n', 'utf-8');
+    const oldValue = currentValue ?? '';
+    const newContent = replaceDepValueInRawPackageJson(rawPkg, actualKey, oldValue, newDepValue);
+    fs_1.default.writeFileSync(pkgJsonPath, newContent, 'utf-8');
     const filesToStage = ['package.json'];
     const lockFiles = ['package-lock.json', 'yarn.lock'];
     for (const lf of lockFiles) {
