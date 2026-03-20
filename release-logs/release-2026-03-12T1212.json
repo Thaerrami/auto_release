@@ -1,0 +1,27 @@
+{
+  "runId": "c74f3767-516b-4f64-a340-3ea284aa1e95",
+  "startedAt": "2026-03-12T12:12:44.476Z",
+  "finishedAt": "2026-03-12T12:17:38.859Z",
+  "engineer": "122722553+tazzeh-atypon@users.noreply.github.com",
+  "dryRun": false,
+  "repos": [
+    {
+      "repoId": "ui-theme-classic",
+      "tracksProcessed": [
+        "v2.6"
+      ],
+      "tagsCreated": [],
+      "cherryPicks": [
+        "eac708613a61581f847f13dc5366eb820f6c44c1"
+      ],
+      "depsBumped": {
+        "ui-core": "2.6.39"
+      },
+      "errors": [
+        "abort all requested at diff summary"
+      ],
+      "status": "failed",
+      "stashed": false
+    }
+  ]
+}

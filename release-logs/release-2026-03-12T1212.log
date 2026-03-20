@@ -1,0 +1,24 @@
+2026-03-12T12:12:44.446Z INFO   Release tool started
+  CMD: flags: {"dryRun":false,"verbose":false,"noColor":false,"logDir":"/Users/talazzeh/ui-workspace/auto_release/release-logs","lockPath":"/tmp/release-tool-ZMac-JLQKN2HKC0.local.lock","repoOverride":null}
+2026-03-12T12:12:44.473Z INFO   Engineer: 122722553+tazzeh-atypon@users.noreply.github.com
+2026-03-12T12:12:44.475Z INFO   Lock acquired
+2026-03-12T12:12:44.475Z INFO   Detected standing repo from CWD: ui-theme-classic (/Users/talazzeh/ui-workspace/ui-theme-classic)
+2026-03-12T12:12:44.476Z INFO   Path check: ui-theme-classic → /Users/talazzeh/ui-workspace/ui-theme-classic (OK)
+2026-03-12T12:12:44.476Z INFO   Selected repos: ui-theme-classic
+2026-03-12T12:12:44.476Z INFO  [ui-theme-classic] Processing repo: ui-theme-classic
+2026-03-12T12:12:44.534Z INFO  [ui-theme-classic] Checked out develop
+2026-03-12T12:12:46.876Z INFO  [ui-theme-classic] Pulled latest changes
+2026-03-12T12:12:49.212Z INFO  [ui-theme-classic] Fetched tags from remote
+2026-03-12T12:13:30.376Z INFO  [ui-theme-classic] Selected tracks: v2.6, v2.7, v2.8
+2026-03-12T12:13:30.377Z INFO  [ui-theme-classic][v2.6] Processing track v2.6
+2026-03-12T12:13:32.883Z INFO  [ui-theme-classic][v2.6] Checked out v2.6.65
+2026-03-12T12:13:40.979Z INFO  [ui-theme-classic][v2.6] Cherry-picked eac708613a61581f847f13dc5366eb820f6c44c1
+2026-03-12T12:13:43.147Z INFO  [ui-theme-classic][v2.6] Using latest remote tag v2.6.39 for parent ui-core (Scenario C)
+2026-03-12T12:13:43.307Z INFO  [ui-theme-classic][v2.6] Bumped ui-core to git+ssh://git@github.com:atypon/ui-core.git#v2.6.39
+2026-03-12T12:16:17.533Z INFO   ui-article upgrade mode: none
+2026-03-12T12:16:49.658Z INFO  [ui-theme-classic][v2.6] npm install skipped by engineer
+2026-03-12T12:16:57.953Z INFO  [ui-theme-classic][v2.6] npm build skipped by engineer
+DIFF SUMMARY: ui-theme-classic v2.6.65 → v2.6.66 | 2 commits, 2 files, +4/-1
+2026-03-12T12:17:38.859Z INFO  [ui-theme-classic][v2.6] Returned to develop
+2026-03-12T12:17:38.859Z WARN   Abort all triggered — skipping remaining repos
+2026-03-12T12:17:38.860Z INFO   Lock released

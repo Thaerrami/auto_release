@@ -143,6 +143,7 @@ export interface GitClient {
   tagDelete(repoPath: string, tag: string): Promise<void>;
   tagDeleteRemote(repoPath: string, tag: string): Promise<void>;
   tagExistsRemote(repoPath: string, tag: string): Promise<boolean>;
+  isMergeCommit(repoPath: string, sha: string): Promise<boolean>;
   cherryPick(repoPath: string, shas: string[]): Promise<CherryPickResult>;
   cherryPickContinue(repoPath: string): Promise<CherryPickResult>;
   cherryPickSkip(repoPath: string): Promise<CherryPickResult>;

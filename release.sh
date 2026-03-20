@@ -370,12 +370,26 @@ process_repo() {
     fi
 
     # Cherry-pick first — so package.json dep-bump never conflicts
+    # Merge commits require -m 1 (mainline parent); see docs/cherry-pick-merge.md or README
     if [ ${#revisions[@]} -gt 0 ]; then
       for rev in "${revisions[@]}"; do
         [ -z "$rev" ] && continue
-        if $DRY_RUN; then dry_run_skip "git cherry-pick $rev"; continue; fi
-        echo "  Cherry-picking: $rev"
-        if ! git -C "$rp" cherry-pick "$rev" 2>/dev/null; then
+        if $DRY_RUN; then
+          if git -C "$rp" rev-parse -q --verify "$rev^2" >/dev/null 2>&1; then
+            dry_run_skip "git cherry-pick -m 1 $rev"
+          else
+            dry_run_skip "git cherry-pick $rev"
+          fi
+          continue
+        fi
+        if git -C "$rp" rev-parse -q --verify "$rev^2" >/dev/null 2>&1; then
+          echo "  Cherry-picking merge commit: $rev (using -m 1)"
+          cp_cmd="git -C $rp cherry-pick -m 1 $rev"
+        else
+          echo "  Cherry-picking: $rev"
+          cp_cmd="git -C $rp cherry-pick $rev"
+        fi
+        if ! eval "$cp_cmd" 2>/dev/null; then
           log_warn "Conflict on $rev"
           echo "  $(_red 'Conflict detected.')"
           echo "  Resolve in your editor, then git add the files."

@@ -68,10 +68,28 @@ export class RealGitClient implements GitClient {
     }
   }
 
+  /**
+   * Returns true if the commit has two parents (i.e. is a merge commit).
+   * Cherry-picking a merge requires -m 1 to specify the mainline parent.
+   */
+  async isMergeCommit(repoPath: string, sha: string): Promise<boolean> {
+    const git = this.getGit(repoPath);
+    try {
+      await git.raw(['rev-parse', '--verify', `${sha}^2`]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async cherryPick(repoPath: string, shas: string[]): Promise<CherryPickResult> {
     const git = this.getGit(repoPath);
     try {
-      await git.raw(['cherry-pick', ...shas]);
+      for (const sha of shas) {
+        const isMerge = await this.isMergeCommit(repoPath, sha);
+        const args = isMerge ? ['cherry-pick', '-m', '1', sha] : ['cherry-pick', sha];
+        await git.raw(args);
+      }
       return { success: true, conflicting: false };
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);

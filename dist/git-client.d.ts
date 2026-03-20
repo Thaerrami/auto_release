@@ -10,6 +10,11 @@ export declare class RealGitClient implements GitClient {
     tagDelete(repoPath: string, tag: string): Promise<void>;
     tagDeleteRemote(repoPath: string, tag: string): Promise<void>;
     tagExistsRemote(repoPath: string, tag: string): Promise<boolean>;
+    /**
+     * Returns true if the commit has two parents (i.e. is a merge commit).
+     * Cherry-picking a merge requires -m 1 to specify the mainline parent.
+     */
+    isMergeCommit(repoPath: string, sha: string): Promise<boolean>;
     cherryPick(repoPath: string, shas: string[]): Promise<CherryPickResult>;
     cherryPickContinue(repoPath: string): Promise<CherryPickResult>;
     cherryPickSkip(repoPath: string): Promise<CherryPickResult>;

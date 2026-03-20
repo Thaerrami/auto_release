@@ -90,7 +90,13 @@ export async function performCherryPicks(
   }
 
   for (const sha of validShas) {
-    console.log(chalk.dim(`  Cherry-picking revision: ${sha}`));
+    const isMerge = await gitClient.isMergeCommit(repoPath, sha);
+    if (isMerge) {
+      console.log(chalk.dim(`  Cherry-picking merge commit: ${sha} (using -m 1)`));
+      logger.info(`Cherry-picking merge commit ${sha} with -m 1`, { repo: repoId, track });
+    } else {
+      console.log(chalk.dim(`  Cherry-picking revision: ${sha}`));
+    }
     const result: CherryPickResult = await gitClient.cherryPick(repoPath, [sha]);
 
     if (result.success) {
