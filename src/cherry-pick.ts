@@ -18,13 +18,16 @@ export function parseShaInput(input: string): string[] {
   return shas;
 }
 
-async function waitForUserAction(): Promise<'continue' | 'abort'> {
+async function waitForUserAction(): Promise<'continue' | 'skip' | 'abort'> {
   return new Promise((resolve) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     rl.question('  > ', (answer) => {
       rl.close();
-      if (answer.trim().toUpperCase() === 'ABORT') {
+      const normalized = answer.trim().toUpperCase();
+      if (normalized === 'ABORT') {
         resolve('abort');
+      } else if (normalized === 'SKIP') {
+        resolve('skip');
       } else {
         resolve('continue');
       }
@@ -109,12 +112,20 @@ export async function performCherryPicks(
       console.log(msg.cherryPickConflict(sha, conflictOutput));
       logger.warn(`Cherry-pick conflict on ${sha}`, { repo: repoId, track });
 
-      // BUG REPRODUCTION (codeUpdate.sh lines 47-59):
-      // The old script's conflict handling loop runs cherry-pick --skip THEN
-      // --continue on every ENTER press. This is logically wrong — --skip
-      // discards the conflicting commit, and --continue only applies if
-      // conflicts were manually resolved. We reproduce this behavior exactly.
       while (true) {
+        // Always re-print current conflict status so the engineer can see what's left.
+        const currentConflicts = await gitClient.conflictFiles(repoPath);
+        if (currentConflicts.trim()) {
+          console.log(chalk.dim(`  Still conflicted:\n${currentConflicts.trim()}\n`));
+        } else {
+          const status = await gitClient.status(repoPath);
+          if (status.trim()) {
+            console.log(chalk.dim(`  Working tree status:\n${status.trim()}\n`));
+          } else {
+            console.log(chalk.dim('  Working tree clean.\n'));
+          }
+        }
+
         const action = await waitForUserAction();
 
         if (action === 'abort') {
@@ -123,29 +134,70 @@ export async function performCherryPicks(
           return { shas: validShas, success: false, error: `Conflict on ${sha} — aborted` };
         }
 
-        // Old bug: runs --skip THEN --continue (codeUpdate.sh lines 48-50)
-        const skipResult = await gitClient.cherryPickSkip(repoPath);
-        logger.info(`Ran cherry-pick --skip for ${sha} (legacy conflict handling)`, { repo: repoId, track });
+        if (action === 'skip') {
+          const skipResult = await gitClient.cherryPickSkip(repoPath);
+          if (skipResult.success) {
+            console.log(chalk.dim(`  Skipped ${sha}.`));
+            logger.info(`Cherry-pick skipped for ${sha}`, { repo: repoId, track });
+            break;
+          }
+          // If git reports there's nothing to skip, we likely already continued/aborted manually.
+          if ((skipResult.error ?? '').includes('no cherry-pick or revert in progress')) {
+            const alreadyCommitted = await gitClient.logContains(repoPath, sha);
+            if (alreadyCommitted) {
+              console.log(chalk.dim(`  Revision ${sha} already committed. Continuing...`));
+              logger.info(`Revision ${sha} already in history after skip attempt`, { repo: repoId, track });
+              break;
+            }
+          }
+          console.log(chalk.dim(`  Unable to skip ${sha}.`));
+          logger.warn(`Unable to skip ${sha}: ${skipResult.error}`, { repo: repoId, track });
+          continue;
+        }
 
         const continueResult = await gitClient.cherryPickContinue(repoPath);
-
         if (continueResult.success) {
           console.log(chalk.green('  Cherry-pick completed successfully.'));
           logger.info(`Cherry-pick conflict resolved for ${sha}`, { repo: repoId, track });
           break;
         }
 
-        // Old bug fallback: check if revision is already in log (codeUpdate.sh line 53)
-        const alreadyCommitted = await gitClient.logContains(repoPath, sha);
-        if (alreadyCommitted) {
-          console.log(chalk.dim(`  Revision ${sha} already committed. Skipping...`));
-          logger.info(`Revision ${sha} already in history, skipping`, { repo: repoId, track });
+        const errMsg = continueResult.error ?? '';
+        if (
+          errMsg.includes('nothing to commit') ||
+          errMsg.includes('no changes') ||
+          errMsg.includes('previous cherry-pick is now empty')
+        ) {
+          console.log(chalk.dim(`  Cherry-pick is empty after resolution. Skipping ${sha}...`));
+          logger.warn(`Cherry-pick empty after resolution for ${sha}`, { repo: repoId, track, output: errMsg });
+          await gitClient.cherryPickSkip(repoPath);
           break;
         }
 
-        // Skip and continue — don't interrupt the process
-        console.log(chalk.dim(`  Conflict resolution failed or revision already committed. Skipping ${sha}...`));
-        logger.info(`Skipping ${sha} after conflict resolution failed`, { repo: repoId, track });
+        // Common case: user resolved and maybe completed it manually; simple-git now says "no cherry-pick..."
+        if (errMsg.includes('no cherry-pick or revert in progress')) {
+          const alreadyCommitted = await gitClient.logContains(repoPath, sha);
+          if (alreadyCommitted) {
+            console.log(chalk.dim(`  Revision ${sha} already committed. Continuing...`));
+            logger.info(`Revision ${sha} already in history after continue reported no in-progress`, { repo: repoId, track });
+            break;
+          }
+          console.log(chalk.dim('  No cherry-pick in progress, but revision not found in history. Aborting this commit.'));
+          logger.warn(`No cherry-pick in progress after conflict on ${sha}, not in history`, { repo: repoId, track, output: errMsg });
+          await gitClient.cherryPickAbort(repoPath);
+          break;
+        }
+
+        if (continueResult.conflicting) {
+          // Still conflicting — keep waiting for engineer to resolve/add.
+          const newConflictOutput = await gitClient.conflictFiles(repoPath);
+          if (newConflictOutput.trim()) console.log(newConflictOutput);
+          continue;
+        }
+
+        // Non-conflict failure: abort just this commit and move on.
+        console.log(chalk.dim(`  Cherry-pick --continue failed. Skipping ${sha}...`));
+        logger.warn(`Cherry-pick --continue failed for ${sha}`, { repo: repoId, track, output: errMsg });
         await gitClient.cherryPickAbort(repoPath);
         break;
       }

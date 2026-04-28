@@ -55,7 +55,7 @@ exports.msg = {
     cherryPickConflict: (sha, files) => c(chalk_1.default.red.bold, `\n✗  Cherry-pick conflict on ${sha}:\n`) +
         files +
         c(chalk_1.default.yellow, '\n  Resolve conflicts in your editor, run "git add <files>",\n') +
-        c(chalk_1.default.yellow, '  then press ENTER to continue, or type ABORT to cancel this track.\n'),
+        c(chalk_1.default.yellow, '  then press ENTER to continue, type SKIP to skip this commit, or ABORT to cancel this track.\n'),
     installPrompt: () => `\n  Run npm install? [Y] Yes  [S] Skip  `,
     installRunning: (repoId) => `  Running npm install in ${repoId}...`,
     installFailed: (output) => c(chalk_1.default.red.bold, '\n✗  npm install failed:\n') +

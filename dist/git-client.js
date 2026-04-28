@@ -93,7 +93,8 @@ class RealGitClient {
     async cherryPickContinue(repoPath) {
         const git = this.getGit(repoPath);
         try {
-            await git.raw(['cherry-pick', '--continue']);
+            // Avoid opening an interactive editor for the commit message after conflict resolution.
+            await git.raw(['cherry-pick', '--continue', '--no-edit']);
             return { success: true, conflicting: false };
         }
         catch (err) {
@@ -114,7 +115,16 @@ class RealGitClient {
     }
     async cherryPickAbort(repoPath) {
         const git = this.getGit(repoPath);
-        await git.raw(['cherry-pick', '--abort']);
+        try {
+            await git.raw(['cherry-pick', '--abort']);
+        }
+        catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            // When the tool has already resolved/skipped, git may report no in-progress state.
+            if (errMsg.includes('no cherry-pick or revert in progress'))
+                return;
+            throw err;
+        }
     }
     async conflictFiles(repoPath) {
         const git = this.getGit(repoPath);

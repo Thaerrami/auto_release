@@ -395,21 +395,33 @@ process_repo() {
           echo "  Resolve in your editor, then git add the files."
           while true; do
             local resp
-            read -rp "  Press ENTER to continue, or type ABORT: " resp
+            read -rp "  Press ENTER to continue, type SKIP to skip this commit, or ABORT: " resp
             if [ "${resp}" = "ABORT" ] || [ "${resp}" = "abort" ]; then
               git -C "$rp" cherry-pick --abort 2>/dev/null || true
               log_warn "Cherry-pick aborted"; break 2
             fi
-            git -C "$rp" cherry-pick --skip 2>/dev/null || true
+            if [ "${resp}" = "SKIP" ] || [ "${resp}" = "skip" ]; then
+              if git -C "$rp" cherry-pick --skip 2>/dev/null; then
+                log_info "Cherry-pick skipped for $rev"; break
+              fi
+              # If nothing is in progress, treat as already resolved/handled manually.
+              if git -C "$rp" log --oneline | grep -q "${rev:0:7}"; then
+                echo "  $(_dim "Revision $rev already committed. Continuing.")"; break
+              fi
+              echo "  $(_dim "Unable to skip $rev. Resolve or ABORT.")"
+              continue
+            fi
+
             if git -C "$rp" cherry-pick --continue 2>/dev/null; then
               log_info "Cherry-pick resolved for $rev"; break
-            elif git -C "$rp" log --oneline | grep -q "${rev:0:7}"; then
-              echo "  $(_dim "Revision $rev already committed. Skipping.")"; break
-            else
-              echo "  $(_dim "Conflict resolution failed. Skipping $rev...")"
-              git -C "$rp" cherry-pick --abort 2>/dev/null || true
-              log_info "Skipped $rev after resolution failed"; break
             fi
+
+            # If continue failed because state is gone, check whether commit is already present.
+            if git -C "$rp" log --oneline | grep -q "${rev:0:7}"; then
+              echo "  $(_dim "Revision $rev already committed. Continuing.")"; break
+            fi
+
+            echo "  $(_dim "Conflict still present or continue failed. Fix conflicts, git add, then press ENTER.")"
           done
         else
           log_info "Cherry-picked $rev"
