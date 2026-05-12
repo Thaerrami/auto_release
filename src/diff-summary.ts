@@ -130,6 +130,12 @@ export async function showDiffSummary(
     `${commits.length} commits, ${stats.filesChanged} files, +${stats.insertions}/-${stats.deletions}`
   );
 
+  if (context.autoPush) {
+    logger.info('Diff summary: auto-push (--auto-push)', { repo: repo.id });
+    console.log(chalk.dim('  (--auto-push) Proceeding with push.\n'));
+    return 'push';
+  }
+
   const inquirer = await import('inquirer');
   const { action } = await inquirer.default.prompt<{ action: string }>([{
     type: 'list',

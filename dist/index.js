@@ -22,6 +22,12 @@ async function main() {
     if (flags.dryRun) {
         console.log(messages_1.msg.dryRunBanner());
     }
+    if (flags.skipInstallBuild) {
+        console.log(chalk_1.default.dim('  --skip-install-build: install and build are skipped for every repo (no prompts).\n'));
+    }
+    if (flags.autoPush) {
+        console.log(chalk_1.default.dim('  --auto-push: after each diff summary, push runs without the push/skip/abort prompt.\n'));
+    }
     const gitClient = new git_client_1.RealGitClient();
     const engineer = await gitClient.getConfigEmail(process.cwd());
     const runId = `${os_1.default.hostname()}-${process.pid}`;

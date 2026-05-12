@@ -24,6 +24,7 @@ ui-workspace/
 
 ### Safety / operational expectations
 
+- Run **`node dist/index.js --help`** (or **`-h`**) for the full list of CLI flags and examples.
 - Run the tool from **inside the repo you want to “stand in”** (recommended), or pass `--repo <id>`.
 - For real releases (non-dry-run), the tool uses a **lock file** (default: `/tmp/release-tool-<hostname>.lock`) to avoid concurrent runs.
 - Crash recovery state is stored at **`release-logs/run-state.json`** (default log dir: `./release-logs/`).

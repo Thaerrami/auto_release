@@ -22,3 +22,11 @@ node dist/index.js
 node dist/index.js --repo ui-core --dry-run
 ```
 
+### CLI help
+
+```bash
+node dist/index.js --help
+```
+
+Lists every flag (including `--skip-install-build` and `--auto-push`) and short examples.
+

@@ -25,6 +25,16 @@ async function main(): Promise<void> {
   if (flags.dryRun) {
     console.log(msg.dryRunBanner());
   }
+  if (flags.skipInstallBuild) {
+    console.log(
+      chalk.dim('  --skip-install-build: install and build are skipped for every repo (no prompts).\n')
+    );
+  }
+  if (flags.autoPush) {
+    console.log(
+      chalk.dim('  --auto-push: after each diff summary, push runs without the push/skip/abort prompt.\n')
+    );
+  }
 
   const gitClient = new RealGitClient();
   const engineer = await gitClient.getConfigEmail(process.cwd());

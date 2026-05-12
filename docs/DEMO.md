@@ -17,7 +17,16 @@ ui-workspace/
 └── ...
 ```
 
-## 2. Run a dry run
+## 2. CLI help (optional)
+
+To see every flag without starting a run:
+
+```bash
+cd /path/to/ui-workspace/auto_release
+node dist/index.js --help
+```
+
+## 3. Run a dry run
 
 From the workspace, run the Node tool with `--dry-run` and `--repo` so it doesn’t rely on your current directory:
 
@@ -35,7 +44,7 @@ node ../auto_release/dist/index.js --dry-run
 
 You should see the banner and **DRY-RUN MODE**; no git or file writes will happen.
 
-## 3. What you’ll see (step by step)
+## 4. What you’ll see (step by step)
 
 ### Startup
 
@@ -82,7 +91,7 @@ For each repo (in dependency order), then each track:
 
 At the end you get a **FINAL SUMMARY** of what would have been done (and in the Node tool, a **DRY-RUN SUMMARY** with tags that would be created).
 
-## 4. Example: minimal demo session
+## 5. Example: minimal demo session
 
 ```text
 $ node dist/index.js --repo ui-core --dry-run
@@ -144,7 +153,7 @@ $ node dist/index.js --repo ui-core --dry-run
   ...
 ```
 
-## 5. Shell script demo
+## 6. Shell script demo
 
 Same idea with the bash script:
 
@@ -155,7 +164,7 @@ bash release.sh --repo ui-core --dry-run
 
 You’ll get the same prompts (tracks, SHAs, ui-article). All git/npm writes are replaced with “Would run: …” lines. Log is written to `release-logs/release-YYYYMMDD-HHMMSS.log` even in dry run.
 
-## 6. Logs and JSON output (real run)
+## 7. Logs and JSON output (real run)
 
 When you run **without** `--dry-run`, the Node tool writes:
 
@@ -186,10 +195,11 @@ When you run **without** `--dry-run`, the Node tool writes:
 
 Use this for auditing or scripting.
 
-## 7. Quick reference
+## 8. Quick reference
 
 | Goal                    | Command |
 |-------------------------|--------|
+| List all CLI flags      | `node dist/index.js --help` |
 | Demo from any directory | `node dist/index.js --repo ui-core --dry-run` |
 | Demo from repo dir      | `cd ../ui-core && node ../auto_release/dist/index.js --dry-run` |
 | Shell dry run           | `bash release.sh --repo ui-core --dry-run` |

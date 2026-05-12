@@ -49,6 +49,17 @@ npm run build
 
 ## Usage
 
+### Command-line help
+
+Print all flags and examples (then exit):
+
+```bash
+node dist/index.js --help
+# or
+node dist/index.js -h
+npm start -- --help
+```
+
 ### Run from inside a repo (recommended)
 
 `cd` into the repo you want to release from. The tool auto-detects where you are and resolves the full dependency tree downward:
@@ -101,6 +112,8 @@ bash release.sh --repo ui-base --dry-run
 | `--verbose` | Extra output. |
 | `--repo <id>` | Starting repo (e.g. `ui-base`, `ui-core`). |
 
+The Node tool also supports `-h` / `--help` and automation flags; see [CLI Flags](#cli-flags).
+
 Logs go to `release-logs/release-YYYYMMDD-HHMMSS.log`.
 
 ## PowerPoint
@@ -128,12 +141,29 @@ You’ll be prompted for tracks and cherry-pick SHAs; all writes are skipped and
 
 | Flag | Description |
 |---|---|
+| `-h`, `--help` | Print usage, all options, and examples; then exit (no prompts, no lock). |
 | `--dry-run` | Preview mode. All reads execute, all writes are skipped and printed as `[DRY-RUN]`. |
 | `--verbose` | Print full raw git and npm command output. |
 | `--no-color` | Disable ANSI colors (useful for piping output or CI). |
 | `--repo <id>` | Override CWD auto-detection. Must be one of: `ui-base`, `ui-core`, `ui-theme-photo`, `ui-theme-classic`, `ui-theme-eureka`, `ui-article`. |
 | `--log-dir <path>` | Custom log output directory. Default: `./release-logs/`. |
 | `--lock-path <path>` | Custom lock file path. Default: `/tmp/release-tool-<hostname>.lock`. |
+| `--skip-install-build` | Skip **npm/yarn install** and **npm/yarn build** for every repo and track, with no Yes/Skip prompts. |
+| `--auto-push` | After each **diff summary** (summary is still printed), **push** immediately without the [P]ush / [S]kip repo / [A]bort all menu. |
+
+### Less interactive runs
+
+The tool is interactive by default (install/build prompts, push confirmation). For a faster path when you already trust the tree:
+
+- **Skip install and build everywhere:** `--skip-install-build`
+- **Push right after each diff summary:** `--auto-push`
+- **Combine both** (fewer stops; you still answer tracks, cherry-picks, conflicts, lock, etc.):
+
+```bash
+node dist/index.js --skip-install-build --auto-push
+```
+
+`--auto-push` does **not** run install/build for you; it only skips the post-summary push menu. Use `--skip-install-build` if you want to skip those steps entirely, or answer the install/build prompts when you omit it.
 
 ## Repo Dependency Tree
 
@@ -161,9 +191,9 @@ For each repo in dependency order, the tool runs these steps:
    - **Checkout tag** -- Checks out the latest tag for the track (detached HEAD)
    - **Bump parent dep** -- If a parent repo was released in this run (or has a remote tag on this track), updates `package.json` with the exact new version
    - **Cherry-pick** -- Prompts for commit SHAs to cherry-pick. **Merge commits** are detected and applied with `-m 1` automatically (see [Cherry-pick and merge commits](#cherry-pick-and-merge-commits)). Validates each SHA exists. Pauses on conflicts for manual resolution
-   - **npm install** -- Runs install. On failure, enters a retry loop (no skip allowed)
-   - **npm run build** -- Runs build. On failure, offers retry, skip, or abort
-   - **Diff summary** -- Shows a boxed summary of commits, file stats, dep changes, and the tag to create. Requires explicit `[P]ush` confirmation
+   - **npm install** -- Runs install (optional skip per repo unless `--skip-install-build`). On failure, offers retry, skip, or abort
+   - **npm run build** -- Runs build (optional skip per repo unless `--skip-install-build`). On failure, offers retry, skip, or abort
+   - **Diff summary** -- Shows a boxed summary of commits, file stats, dep changes, and the tag to create. Normally requires explicit `[P]ush` confirmation; use `--auto-push` to push without that menu
    - **Push** -- Creates tag, pushes to origin. Handles non-fast-forward, auth errors, protected branches, and timeouts with retries
    - **Return to develop** -- Checks out the base branch before the next track
 

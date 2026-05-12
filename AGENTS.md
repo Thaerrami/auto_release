@@ -10,6 +10,7 @@ This file is meant to make it easy for a future AI agent (or a new engineer) to:
 - **Repo**: `auto_release`
 - **Purpose**: interactive release/hotfix workflow across Literatum UI repos (ui-base → ui-core → themes; plus ui-article).
 - **Runtime entrypoint**: `dist/index.js` (built from `src/index.ts`)
+- **CLI help**: `node dist/index.js --help` (or `-h`) — full flag list and examples; see `docs/README.md` → *CLI Flags*.
 
 ### Where “state” lives
 

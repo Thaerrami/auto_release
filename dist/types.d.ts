@@ -36,6 +36,10 @@ export interface RunContext {
     articleVersion?: string;
     /** When articleUpgradeMode === 'per-track', map track (e.g. v2.7) → ui-article version/tag. */
     articleVersionByTrack?: Record<string, string>;
+    /** Skip install and build for every repo/track (no prompts). */
+    skipInstallBuild: boolean;
+    /** After diff summary, push without prompting (still shows the summary). */
+    autoPush: boolean;
 }
 export interface LogEntry {
     timestamp: string;
@@ -97,6 +101,8 @@ export interface CLIFlags {
     logDir: string;
     lockPath: string;
     repoOverride: string | null;
+    skipInstallBuild: boolean;
+    autoPush: boolean;
 }
 export interface TagInfo {
     tag: string;

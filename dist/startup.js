@@ -230,6 +230,8 @@ function initRunContext(flags, engineer, runId, runStateFile, selectedRepos) {
         runId,
         startedAt: new Date().toISOString(),
         selectedRepos,
+        skipInstallBuild: flags.skipInstallBuild,
+        autoPush: flags.autoPush,
     };
 }
 //# sourceMappingURL=startup.js.map

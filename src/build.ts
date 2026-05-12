@@ -58,6 +58,11 @@ export async function runInstall(
     return { success: true, skipped: false, aborted: false };
   }
 
+  if (context.skipInstallBuild) {
+    logger.info('npm install skipped (--skip-install-build)', { repo: repoId, track });
+    return { success: true, skipped: true, aborted: false };
+  }
+
   const shouldRun = await promptRunStep('Run npm install?');
   if (!shouldRun) {
     logger.info('npm install skipped by engineer', { repo: repoId, track });
@@ -111,6 +116,11 @@ export async function runBuild(
     console.log(msg.dryRunSkip(`${pm} run build`));
     logger.info(`[DRY-RUN] Would run ${pm} run build`, { repo: repoId, track });
     return { success: true, skipped: false, aborted: false };
+  }
+
+  if (context.skipInstallBuild) {
+    logger.info('npm build skipped (--skip-install-build)', { repo: repoId, track });
+    return { success: true, skipped: true, aborted: false };
   }
 
   const shouldRun = await promptRunStep('Run npm run build?');

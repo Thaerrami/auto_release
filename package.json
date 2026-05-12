@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "help": "node dist/index.js --help",
     "dev": "ts-node src/index.ts",
     "ppt": "node scripts/create-presentation.js"
   },

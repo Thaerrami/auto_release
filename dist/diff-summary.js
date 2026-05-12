@@ -129,6 +129,11 @@ async function showDiffSummary(repo, prevTag, newTag, gitClient, context, logger
     console.log('');
     logger.writeTextLine(`DIFF SUMMARY: ${repo.id} ${prevTag} → ${newTag} | ` +
         `${commits.length} commits, ${stats.filesChanged} files, +${stats.insertions}/-${stats.deletions}`);
+    if (context.autoPush) {
+        logger.info('Diff summary: auto-push (--auto-push)', { repo: repo.id });
+        console.log(chalk_1.default.dim('  (--auto-push) Proceeding with push.\n'));
+        return 'push';
+    }
     const inquirer = await Promise.resolve().then(() => __importStar(require('inquirer')));
     const { action } = await inquirer.default.prompt([{
             type: 'list',

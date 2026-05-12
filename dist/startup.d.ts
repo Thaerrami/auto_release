@@ -33,5 +33,7 @@ export declare function initRunContext(flags: {
     noColor: boolean;
     logDir: string;
     lockPath: string;
+    skipInstallBuild: boolean;
+    autoPush: boolean;
 }, engineer: string, runId: string, runStateFile: string, selectedRepos: RepoConfig[]): RunContext;
 //# sourceMappingURL=startup.d.ts.map

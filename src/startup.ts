@@ -251,7 +251,15 @@ export function printDryRunSummary(
 }
 
 export function initRunContext(
-  flags: { dryRun: boolean; verbose: boolean; noColor: boolean; logDir: string; lockPath: string },
+  flags: {
+    dryRun: boolean;
+    verbose: boolean;
+    noColor: boolean;
+    logDir: string;
+    lockPath: string;
+    skipInstallBuild: boolean;
+    autoPush: boolean;
+  },
   engineer: string,
   runId: string,
   runStateFile: string,
@@ -274,5 +282,7 @@ export function initRunContext(
     runId,
     startedAt: new Date().toISOString(),
     selectedRepos,
+    skipInstallBuild: flags.skipInstallBuild,
+    autoPush: flags.autoPush,
   };
 }
