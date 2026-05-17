@@ -86,7 +86,10 @@ export const msg = {
     `\nEnter commit SHAs to cherry-pick (space-separated, SHA..SHA range, or empty to skip): `,
 
   cherryPickPromptAll: () =>
-    `\nEnter commit SHAs to cherry-pick (used for all repos/tracks). Space-separated, or empty to skip: `,
+    `\nCommits to cherry-pick in every repo (all tracks). Space-separated or empty for none: `,
+
+  cherryPickRepoExtraPrompt: (repoId: string) =>
+    `\nAdditional commits only for ${c(chalk.white.bold, repoId)} (after the global list; space-separated or empty): `,
 
   cherryPickShaNotFound: (sha: string) =>
     c(chalk.yellow, `  ⚠  SHA ${sha} not found in repo history — skipping`),
@@ -176,7 +179,7 @@ export const msg = {
     c(chalk.dim, `  [eureka-special] Processing major versions: ${majors}\n`),
 
   childCherryPickPrompt: (repoId: string) =>
-    `\nEnter cherry-pick SHAs for ${c(chalk.white.bold, repoId)} (space-separated, or empty to skip): `,
+    msg.cherryPickRepoExtraPrompt(repoId),
 
   articleUpgradePrompt: () =>
     c(chalk.cyan, '\nUpgrade ui-article in consuming repos (core/themes)?\n') +

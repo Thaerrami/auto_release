@@ -28,8 +28,20 @@ export interface RunContext {
     selectedRepos: RepoConfig[];
     /** Tracks selected once for the whole run (e.g. v2.7, v2.8); used for all repos. */
     selectedTracks?: string[];
-    /** Cherry-pick SHAs entered once; used for all repos/tracks. */
+    /**
+     * Cherry-pick SHAs applied to every repo/track (entered once per run).
+     * Merged with {@link cherryPickShasPerRepo} for each repo (global first, then repo-only).
+     */
     cherryPickShas?: string[];
+    /** Extra SHAs for a single repo only (prompted once per repo; empty = none). */
+    cherryPickShasPerRepo?: Record<string, string[]>;
+    /** Repo ids for which the repo-only SHA prompt was already shown this run. */
+    cherryPickPerRepoExtrasPrompted?: Set<string>;
+    /**
+     * After the global SHA list, whether to collect per-repo extras (multi-repo runs only).
+     * Set by a one-time confirm; `'off'` skips all per-repo prompts.
+     */
+    cherryPickPerRepoExtrasMode?: 'off' | 'per-repo';
     /** ui-article upgrade: 'none' = leave as-is, 'single' = one version for all tracks, 'per-track' = map track → version. */
     articleUpgradeMode?: 'none' | 'single' | 'per-track';
     /** When articleUpgradeMode === 'single', version/tag to set (e.g. v6.6.6). */

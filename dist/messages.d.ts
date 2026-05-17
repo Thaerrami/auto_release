@@ -23,6 +23,7 @@ export declare const msg: {
     depVersionDrift: (pkgKey: string, current: string, newVer: string) => string;
     cherryPickPrompt: () => string;
     cherryPickPromptAll: () => string;
+    cherryPickRepoExtraPrompt: (repoId: string) => string;
     cherryPickShaNotFound: (sha: string) => string;
     cherryPickConflict: (sha: string, files: string) => string;
     installPrompt: () => string;

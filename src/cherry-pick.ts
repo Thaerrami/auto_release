@@ -18,6 +18,87 @@ export function parseShaInput(input: string): string[] {
   return shas;
 }
 
+/** Preserve order; drop exact duplicates (e.g. same SHA in global + repo-only). */
+function dedupeShaList(shas: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of shas) {
+    if (seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
+
+async function ensureGlobalCherryPickShas(context: RunContext, logger: Logger): Promise<string[]> {
+  if (!Array.isArray(context.cherryPickShas)) {
+    const { shaInput } = await inquirer.prompt<{ shaInput: string }>([{
+      type: 'input',
+      name: 'shaInput',
+      message: msg.cherryPickPromptAll(),
+    }]);
+    context.cherryPickShas = parseShaInput(shaInput);
+    logger.info(`Global cherry-pick SHAs: ${context.cherryPickShas.length ? context.cherryPickShas.join(' ') : '(none)'}`);
+  }
+  return context.cherryPickShas;
+}
+
+async function resolvePerRepoExtrasMode(context: RunContext, logger: Logger): Promise<'off' | 'per-repo'> {
+  if (context.cherryPickPerRepoExtrasMode !== undefined) {
+    return context.cherryPickPerRepoExtrasMode;
+  }
+
+  const releaseRepoCount = context.selectedRepos.filter((r) => !r.excludeFromRelease).length;
+  if (releaseRepoCount <= 1) {
+    context.cherryPickPerRepoExtrasMode = 'off';
+    logger.info('Single repo in run — skipping per-repo cherry-pick prompts');
+    return 'off';
+  }
+
+  const { addExtras } = await inquirer.prompt<{ addExtras: boolean }>([{
+    type: 'confirm',
+    name: 'addExtras',
+    default: false,
+    message:
+      'Add extra cherry-picks for specific repos only (in addition to the global list above)?',
+  }]);
+  context.cherryPickPerRepoExtrasMode = addExtras ? 'per-repo' : 'off';
+  logger.info(`Per-repo cherry-pick extras: ${context.cherryPickPerRepoExtrasMode}`);
+  return context.cherryPickPerRepoExtrasMode;
+}
+
+async function ensureRepoExtraCherryPickShas(
+  repoId: string,
+  context: RunContext,
+  logger: Logger
+): Promise<string[]> {
+  const mode = await resolvePerRepoExtrasMode(context, logger);
+  if (mode === 'off') {
+    return [];
+  }
+
+  if (!context.cherryPickPerRepoExtrasPrompted) {
+    context.cherryPickPerRepoExtrasPrompted = new Set();
+  }
+  if (context.cherryPickPerRepoExtrasPrompted.has(repoId)) {
+    return context.cherryPickShasPerRepo?.[repoId] ?? [];
+  }
+
+  const { extraInput } = await inquirer.prompt<{ extraInput: string }>([{
+    type: 'input',
+    name: 'extraInput',
+    message: msg.cherryPickRepoExtraPrompt(repoId),
+  }]);
+  const extra = parseShaInput(extraInput);
+  if (!context.cherryPickShasPerRepo) {
+    context.cherryPickShasPerRepo = {};
+  }
+  context.cherryPickShasPerRepo[repoId] = extra;
+  context.cherryPickPerRepoExtrasPrompted.add(repoId);
+  logger.info(`Repo-only cherry-pick SHAs for ${repoId}: ${extra.length ? extra.join(' ') : '(none)'}`);
+  return extra;
+}
+
 async function waitForUserAction(): Promise<'continue' | 'skip' | 'abort'> {
   return new Promise((resolve) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -43,23 +124,19 @@ export async function performCherryPicks(
   context: RunContext,
   logger: Logger
 ): Promise<{ shas: string[]; success: boolean; error?: string }> {
-  // Use run-wide SHAs if already set (prompt once, use for all repos/tracks)
-  let shas: string[];
-  if (Array.isArray(context.cherryPickShas)) {
-    shas = context.cherryPickShas;
-    if (shas.length > 0) {
-      console.log(chalk.dim(`  Using cherry-pick SHAs for all: ${shas.join(' ')}`));
-      logger.info(`Using run-wide cherry-pick SHAs`, { repo: repoId, track });
-    }
-  } else {
-    const { shaInput } = await inquirer.prompt<{ shaInput: string }>([{
-      type: 'input',
-      name: 'shaInput',
-      message: msg.cherryPickPromptAll(),
-    }]);
-    shas = parseShaInput(shaInput);
-    context.cherryPickShas = shas;
+  const globalShas = await ensureGlobalCherryPickShas(context, logger);
+  const repoOnlyShas = await ensureRepoExtraCherryPickShas(repoId, context, logger);
+  const shas = dedupeShaList([...globalShas, ...repoOnlyShas]);
+
+  if (globalShas.length > 0) {
+    console.log(chalk.dim(`  Global cherry-picks: ${globalShas.join(' ')}`));
+    logger.info(`Using global cherry-pick SHAs`, { repo: repoId, track });
   }
+  if (repoOnlyShas.length > 0) {
+    console.log(chalk.dim(`  ${repoId}-only cherry-picks: ${repoOnlyShas.join(' ')}`));
+    logger.info(`Using repo-only cherry-pick SHAs`, { repo: repoId, track });
+  }
+
   if (shas.length === 0) {
     logger.info('No cherry-picks requested', { repo: repoId, track });
     return { shas: [], success: true };

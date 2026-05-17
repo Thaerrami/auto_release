@@ -50,7 +50,8 @@ exports.msg = {
     depVersionDrift: (pkgKey, current, newVer) => c(chalk_1.default.yellow, `\n⚠  Current version of ${pkgKey} is ${current}, which is ahead of new tag ${newVer}.\n`) +
         `   Overwrite?`,
     cherryPickPrompt: () => `\nEnter commit SHAs to cherry-pick (space-separated, SHA..SHA range, or empty to skip): `,
-    cherryPickPromptAll: () => `\nEnter commit SHAs to cherry-pick (used for all repos/tracks). Space-separated, or empty to skip: `,
+    cherryPickPromptAll: () => `\nCommits to cherry-pick in every repo (all tracks). Space-separated or empty for none: `,
+    cherryPickRepoExtraPrompt: (repoId) => `\nAdditional commits only for ${c(chalk_1.default.white.bold, repoId)} (after the global list; space-separated or empty): `,
     cherryPickShaNotFound: (sha) => c(chalk_1.default.yellow, `  ⚠  SHA ${sha} not found in repo history — skipping`),
     cherryPickConflict: (sha, files) => c(chalk_1.default.red.bold, `\n✗  Cherry-pick conflict on ${sha}:\n`) +
         files +
@@ -98,7 +99,7 @@ exports.msg = {
     legacyTestPrefix: (tag) => c(chalk_1.default.yellow, `\n  ⚠  Legacy behavior: tag would be created as "${tag}" (test prefix from UpgradeTheme2.sh bug)\n`),
     consumeThemesBeforeDefine: () => c(chalk_1.default.yellow, '  ⚠  [legacy-bug] consumeThemes() invoked before function definition — would fail at runtime in bash\n'),
     eurekaSpecialMode: (majors) => c(chalk_1.default.dim, `  [eureka-special] Processing major versions: ${majors}\n`),
-    childCherryPickPrompt: (repoId) => `\nEnter cherry-pick SHAs for ${c(chalk_1.default.white.bold, repoId)} (space-separated, or empty to skip): `,
+    childCherryPickPrompt: (repoId) => exports.msg.cherryPickRepoExtraPrompt(repoId),
     articleUpgradePrompt: () => c(chalk_1.default.cyan, '\nUpgrade ui-article in consuming repos (core/themes)?\n') +
         '  [N] No — leave ui-article as-is in package.json\n' +
         '  [S] Yes — single version for all tracks (e.g. v6.6.6)\n' +
