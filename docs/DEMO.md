@@ -144,6 +144,19 @@ $ node dist/index.js --repo ui-core --dry-run
 
   (same for ui-theme-classic, ui-theme-photo)
 
+  ✓  Release run complete.
+  Logs: release-logs/release-....log
+  JSON: release-logs/release-....json
+
+  Upgraded versions from this release:
+    ui-theme-photo track v2.7 → v2.7.96
+
+  6 product(s) affected in ui-products:
+    cabi — ui-theme (ui-theme-photo): v2.7.95 → v2.7.96
+    ...
+
+  ? Product dependency upgrade: [A] Upgrade all  [S] Select  [N] Skip
+
   ╔══════════════════════════════════════════╗
   ║        DRY-RUN SUMMARY                   ║
   ╚══════════════════════════════════════════╝
@@ -195,15 +208,47 @@ When you run **without** `--dry-run`, the Node tool writes:
 
 Use this for auditing or scripting.
 
-## 8. Quick reference
+## 8. Post-release: ui-products upgrade
 
-| Goal                    | Command |
-|-------------------------|--------|
-| List all CLI flags      | `node dist/index.js --help` |
+After a **successful** release (not skipped with `--skip-product-upgrade`), the tool scans **ui-products** for dependencies that match the tags you just pushed.
+
+### What you’ll see
+
+1. **Upgraded versions** — list of repos and tags from this run (e.g. `ui-theme-photo track v2.6 → v2.6.73`).
+2. **Affected products** — each product path and dep change (e.g. `cabi — ui-theme: v2.6.72 → v2.6.73`).
+3. **Menu:** `[A] Upgrade all` · `[S] Select products` · `[N] Skip`
+4. If upgrading: **ui-products** is stashed (if dirty), checked out to `develop`, pulled.
+5. Per product: `package.json` updated, optional `npm install`, commit.
+6. **Push ui-products?** — confirm before pushing to `origin/develop`.
+
+In **dry run**, all of the above is shown as `[DRY-RUN]` — no files or commits.
+
+### Demo tips
+
+- Use `--dry-run` to see which products would be affected without changing anything.
+- Use `--skip-product-upgrade` to end the run after widget repos only.
+- Use `--auto-upgrade-products` in real runs to skip the product selection menu.
+
+```bash
+node dist/index.js --repo ui-theme-photo --dry-run
+# Complete release prompts, then review the product list at the end
+
+node dist/index.js --repo ui-theme-photo --auto-push --auto-upgrade-products --skip-product-install
+# Full automation: release + upgrade all matching products (no npm install)
+```
+
+## 9. Quick reference
+
+| Goal | Command |
+|------|---------|
+| **Command sheet (all recipes)** | See **[COMMANDS.md](COMMANDS.md)** |
+| List all CLI flags | `node dist/index.js --help` |
 | Demo from any directory | `node dist/index.js --repo ui-core --dry-run` |
-| Demo from repo dir      | `cd ../ui-core && node ../auto_release/dist/index.js --dry-run` |
-| Shell dry run           | `bash release.sh --repo ui-core --dry-run` |
-| Real run (Node)         | `node dist/index.js --repo ui-core` |
-| Real run (shell)        | `cd ../ui-core && bash ../auto_release/release.sh` |
+| Demo from repo dir | `cd ../ui-core && node ../auto_release/dist/index.js --dry-run` |
+| Shell dry run | `bash release.sh --repo ui-core --dry-run` |
+| Real run (Node) | `node dist/index.js --repo ui-core` |
+| Real run + auto products | `node dist/index.js --repo ui-theme-photo --auto-push --auto-upgrade-products` |
+| Real run, skip products | `node dist/index.js --repo ui-core --skip-product-upgrade` |
+| Real run (shell) | `cd ../ui-core && bash ../auto_release/release.sh` |
 
 For full options and flow details, see [README.md](README.md).

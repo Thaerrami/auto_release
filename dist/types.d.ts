@@ -115,6 +115,9 @@ export interface CLIFlags {
     repoOverride: string | null;
     skipInstallBuild: boolean;
     autoPush: boolean;
+    skipProductUpgrade: boolean;
+    autoUpgradeProducts: boolean;
+    skipProductInstall: boolean;
 }
 export interface TagInfo {
     tag: string;

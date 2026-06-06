@@ -50,5 +50,19 @@ export declare const msg: {
     articleUpgradePrompt: () => string;
     articleVersionSingle: () => string;
     articleVersionForTrack: (track: string) => string;
+    productUpgradeTargetsHeader: () => string;
+    productUpgradeTargetLine: (repoId: string, track: string, newTag: string) => string;
+    productUpgradeListHeader: (count: number) => string;
+    productUpgradePlanLine: (summary: string) => string;
+    productUpgradePrep: () => string;
+    productDepBump: (productId: string, depKey: string, oldVer: string, newVer: string) => string;
+    productInstallRunning: (productId: string) => string;
+    productUpgradeNoTargets: () => string;
+    productUpgradeNoProducts: () => string;
+    productUpgradeSkipped: () => string;
+    productUpgradeComplete: (results: {
+        productId: string;
+        status: string;
+    }[]) => string;
 };
 //# sourceMappingURL=messages.d.ts.map

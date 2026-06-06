@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ARTICLE_REMOTE_URL = exports.REPOS = void 0;
+exports.ARTICLE_REMOTE_URL = exports.REPOS = exports.PRODUCT_UPGRADEABLE_REPOS = exports.UI_PRODUCTS_PATH = void 0;
 exports.getRepoById = getRepoById;
 exports.getReposByLayer = getReposByLayer;
 exports.sortReposByDependencyOrder = sortReposByDependencyOrder;
@@ -12,6 +12,16 @@ exports.getRepoAndDescendants = getRepoAndDescendants;
 const path_1 = __importDefault(require("path"));
 const WORKSPACE = path_1.default.resolve(__dirname, '..', '..');
 const GH_BASE = 'git@github.com:atypon';
+exports.UI_PRODUCTS_PATH = path_1.default.join(WORKSPACE, 'ui-products');
+/** Repos whose tags can be propagated into ui-products package.json dependencies. */
+exports.PRODUCT_UPGRADEABLE_REPOS = {
+    'ui-theme-photo': { depKey: 'ui-theme' },
+    'ui-theme-classic': { depKey: 'ui-theme' },
+    'ui-theme-eureka': { depKey: 'ui-theme' },
+    'ui-theme-nextgen': { depKey: 'ui-theme' },
+    'ui-core': { depKey: 'ui-core' },
+    'ui-article': { depKey: 'ui-article' },
+};
 /**
  * All repos follow a standardized layout:
  *   - Folder: <workspace>/<id>     (e.g. /Users/.../ui-workspace/ui-core)

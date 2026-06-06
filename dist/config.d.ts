@@ -1,4 +1,9 @@
 import { RepoConfig } from './types';
+export declare const UI_PRODUCTS_PATH: string;
+/** Repos whose tags can be propagated into ui-products package.json dependencies. */
+export declare const PRODUCT_UPGRADEABLE_REPOS: Record<string, {
+    depKey: string;
+}>;
 /**
  * Dependency tree:
  *

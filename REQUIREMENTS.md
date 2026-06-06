@@ -19,6 +19,8 @@ ui-workspace/
 ├── ui-theme-photo/
 ├── ui-theme-classic/
 ├── ui-theme-eureka/
+├── ui-theme-nextgen/
+├── ui-products/      <-- required for post-release product dep upgrades
 └── ui-article/
 ```
 

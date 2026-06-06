@@ -11,32 +11,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const config_1 = require("./config");
 const messages_1 = require("./messages");
 const version_1 = require("./version");
-function extractVersionFromGitSsh(value) {
-    const hashIdx = value.lastIndexOf('#');
-    if (hashIdx !== -1) {
-        return value.slice(hashIdx + 1).replace(/^v/, '');
-    }
-    return value.replace(/^[~^]/, '').replace(/^v/, '');
-}
-function buildGitSshDepValue(remoteUrl, tag) {
-    return `git+ssh://${remoteUrl}#${tag}`;
-}
-function isGitSshFormat(value) {
-    return value.startsWith('git+ssh://') || value.startsWith('git://');
-}
-/** Escape special regex characters in a string for use in RegExp. */
-function escapeRegex(s) {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-/** Replace only the dependency value in raw package.json to preserve indentation and formatting. */
-function replaceDepValueInRawPackageJson(raw, key, oldValue, newValue) {
-    const escapedKey = escapeRegex(key);
-    const escapedOld = escapeRegex(oldValue);
-    // Match "key": "oldValue" (double-quoted value, flexible whitespace)
-    const pattern = new RegExp(`("${escapedKey}"\\s*:\\s*")${escapedOld}(")`, 'g');
-    const replacementValue = newValue.replace(/\$/g, '$$'); // escape $ for replace
-    return raw.replace(pattern, `$1${replacementValue}$2`);
-}
+const dep_utils_1 = require("./dep-utils");
 async function bumpParentDependency(repo, track, context, gitClient, logger) {
     const bumped = {};
     for (const depId of repo.deps) {
@@ -145,11 +120,10 @@ async function bumpArticleDependency(repo, track, context, gitClient, logger, bu
         return;
     const rawPkg = fs_1.default.readFileSync(pkgJsonPath, 'utf-8');
     const pkgJson = JSON.parse(rawPkg);
-    const depSections = ['dependencies', 'devDependencies', 'peerDependencies'];
     let currentValue = null;
     let sectionKey = null;
     const articleKey = 'ui-article';
-    for (const section of depSections) {
+    for (const section of dep_utils_1.DEP_SECTIONS) {
         const deps = pkgJson[section];
         if (deps && articleKey in deps) {
             currentValue = deps[articleKey];
@@ -161,14 +135,14 @@ async function bumpArticleDependency(repo, track, context, gitClient, logger, bu
         return;
     }
     const newVersion = targetTag.replace(/^v/, '');
-    const currentVersion = extractVersionFromGitSsh(currentValue);
+    const currentVersion = (0, dep_utils_1.extractVersionFromGitSsh)(currentValue);
     if (currentVersion === newVersion) {
         console.log(chalk_1.default.dim(`  ui-article is already at ${targetTag}, skipping update.`));
         logger.info(`ui-article already at ${targetTag}`, { repo: repo.id, track });
         return;
     }
-    const newDepValue = isGitSshFormat(currentValue)
-        ? buildGitSshDepValue('git@github.com:atypon/ui-article.git', targetTag)
+    const newDepValue = (0, dep_utils_1.isGitSshFormat)(currentValue)
+        ? (0, dep_utils_1.buildGitSshDepValue)('git@github.com:atypon/ui-article.git', targetTag)
         : newVersion;
     if (context.dryRun) {
         console.log(messages_1.msg.dryRunSkip(`Update ui-article to ${targetTag} in ${pkgJsonPath}`));
@@ -176,7 +150,7 @@ async function bumpArticleDependency(repo, track, context, gitClient, logger, bu
         return;
     }
     console.log(messages_1.msg.depBump('ui-article', articleKey, currentValue, newDepValue));
-    const newContent = replaceDepValueInRawPackageJson(rawPkg, articleKey, currentValue, newDepValue);
+    const newContent = (0, dep_utils_1.replaceDepValueInRawPackageJson)(rawPkg, articleKey, currentValue, newDepValue);
     fs_1.default.writeFileSync(pkgJsonPath, newContent, 'utf-8');
     await gitClient.add(repo.localPath, ['package.json']);
     await gitClient.commitAll(repo.localPath, `Upgrade ui-article to ${targetTag}`);
@@ -191,14 +165,13 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
     }
     const rawPkg = fs_1.default.readFileSync(pkgJsonPath, 'utf-8');
     const pkgJson = JSON.parse(rawPkg);
-    const depSections = ['dependencies', 'devDependencies', 'peerDependencies'];
     let found = false;
     let currentValue = null;
     let sectionKey = null;
     let actualKey = pkgKey;
     // Old scripts auto-detect from package.json (UpdateTheme2.sh line 14-18):
     // parent_dependency=$(jq -r 'if .dependencies["ui-core"] then "ui-core" elif .dependencies["ui-base"] then "ui-base"')
-    for (const section of depSections) {
+    for (const section of dep_utils_1.DEP_SECTIONS) {
         const deps = pkgJson[section];
         if (deps && pkgKey in deps) {
             currentValue = deps[pkgKey];
@@ -209,7 +182,7 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
     }
     if (!found) {
         // Try the raw depId name as fallback (old scripts use raw names like "ui-core")
-        for (const section of depSections) {
+        for (const section of dep_utils_1.DEP_SECTIONS) {
             const deps = pkgJson[section];
             if (deps && depId in deps) {
                 currentValue = deps[depId];
@@ -222,7 +195,7 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
     }
     if (!found) {
         const allKeys = [];
-        for (const section of depSections) {
+        for (const section of dep_utils_1.DEP_SECTIONS) {
             const deps = pkgJson[section];
             if (deps)
                 allKeys.push(...Object.keys(deps));
@@ -237,7 +210,7 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
         if (!confirmKey)
             return;
         actualKey = confirmKey;
-        for (const section of depSections) {
+        for (const section of dep_utils_1.DEP_SECTIONS) {
             const deps = pkgJson[section];
             if (deps && confirmKey in deps) {
                 currentValue = deps[confirmKey];
@@ -256,14 +229,14 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
     //   git+ssh://git@github.com/atypon/${dependency}.git#${latest_dependency_tag})
     const newVersion = (0, version_1.tagToVersion)(newTag);
     let newDepValue;
-    if (currentValue && isGitSshFormat(currentValue)) {
-        newDepValue = buildGitSshDepValue(parentRemoteUrl, newTag);
+    if (currentValue && (0, dep_utils_1.isGitSshFormat)(currentValue)) {
+        newDepValue = (0, dep_utils_1.buildGitSshDepValue)(parentRemoteUrl, newTag);
     }
     else {
         newDepValue = newVersion;
     }
     if (currentValue) {
-        const currentVer = extractVersionFromGitSsh(currentValue);
+        const currentVer = (0, dep_utils_1.extractVersionFromGitSsh)(currentValue);
         if ((0, version_1.isVersionAhead)(currentVer, newVersion)) {
             console.log(messages_1.msg.depVersionDrift(actualKey, currentValue, newDepValue));
             const { confirmOverwrite } = await inquirer_1.default.prompt([{
@@ -285,7 +258,7 @@ async function doBump(repo, depId, pkgKey, newTag, parentRemoteUrl, track, conte
     }
     console.log(messages_1.msg.depBump(depId, actualKey, currentValue ?? 'none', newDepValue));
     const oldValue = currentValue ?? '';
-    const newContent = replaceDepValueInRawPackageJson(rawPkg, actualKey, oldValue, newDepValue);
+    const newContent = (0, dep_utils_1.replaceDepValueInRawPackageJson)(rawPkg, actualKey, oldValue, newDepValue);
     fs_1.default.writeFileSync(pkgJsonPath, newContent, 'utf-8');
     const filesToStage = ['package.json'];
     const lockFiles = ['package-lock.json', 'yarn.lock'];

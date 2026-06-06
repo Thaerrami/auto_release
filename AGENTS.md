@@ -8,9 +8,9 @@ This file is meant to make it easy for a future AI agent (or a new engineer) to:
 ### What this tool is
 
 - **Repo**: `auto_release`
-- **Purpose**: interactive release/hotfix workflow across Literatum UI repos (ui-base → ui-core → themes; plus ui-article).
+- **Purpose**: interactive release/hotfix workflow across Literatum UI repos (ui-base → ui-core → themes; plus ui-article), then optional **ui-products** dependency upgrades.
 - **Runtime entrypoint**: `dist/index.js` (built from `src/index.ts`)
-- **CLI help**: `node dist/index.js --help` (or `-h`) — full flag list and examples; see `docs/README.md` → *CLI Flags*.
+- **CLI help**: `node dist/index.js --help` (or `-h`) — full flag list and examples; see `docs/README.md` → *CLI Flags* and `docs/COMMANDS.md` for quick reference.
 
 ### Where “state” lives
 
@@ -60,7 +60,7 @@ Goals:
 - If there is an incomplete run, determine whether to resume or discard safely.
 
 What to do first:
-- Read `docs/README.md`, `CHANGELOG.md`, `REQUIREMENTS.md`.
+- Read `docs/README.md`, `docs/COMMANDS.md`, `CHANGELOG.md`, `REQUIREMENTS.md`.
 - Inspect `release-logs/run-state.json` (if present) and the latest `release-logs/release-*.log/.json`.
 - Run `npm run build` and a `--dry-run` smoke check.
 

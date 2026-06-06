@@ -1,4 +1,5 @@
 import { TagInfo } from './types';
+export declare function getTrackFromVersion(version: string): string | null;
 export declare function parseTag(tag: string): TagInfo | null;
 export declare function groupTagsByTrack(tags: string[]): Map<string, TagInfo[]>;
 export declare function getLatestInTrack(trackInfos: TagInfo[]): TagInfo | null;

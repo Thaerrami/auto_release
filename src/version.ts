@@ -1,5 +1,12 @@
 import { TagInfo } from './types';
 
+export function getTrackFromVersion(version: string): string | null {
+  const normalized = version.startsWith('v') ? version : `v${version}`;
+  const match = normalized.match(/^v(\d+)\.(\d+)/);
+  if (!match) return null;
+  return `v${match[1]}.${match[2]}`;
+}
+
 export function parseTag(tag: string): TagInfo | null {
   const match = tag.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
   if (!match) return null;

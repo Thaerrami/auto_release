@@ -3,46 +3,17 @@ import path from 'path';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { RepoConfig, RunContext, GitClient } from './types';
-import { ARTICLE_REMOTE_URL, getRepoById } from './config';
+import { getRepoById } from './config';
 import { msg } from './messages';
 import { tagToVersion, isVersionAhead } from './version';
 import { Logger } from './logger';
-
-function extractVersionFromGitSsh(value: string): string {
-  const hashIdx = value.lastIndexOf('#');
-  if (hashIdx !== -1) {
-    return value.slice(hashIdx + 1).replace(/^v/, '');
-  }
-  return value.replace(/^[~^]/, '').replace(/^v/, '');
-}
-
-function buildGitSshDepValue(remoteUrl: string, tag: string): string {
-  return `git+ssh://${remoteUrl}#${tag}`;
-}
-
-function isGitSshFormat(value: string): boolean {
-  return value.startsWith('git+ssh://') || value.startsWith('git://');
-}
-
-/** Escape special regex characters in a string for use in RegExp. */
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** Replace only the dependency value in raw package.json to preserve indentation and formatting. */
-function replaceDepValueInRawPackageJson(
-  raw: string,
-  key: string,
-  oldValue: string,
-  newValue: string
-): string {
-  const escapedKey = escapeRegex(key);
-  const escapedOld = escapeRegex(oldValue);
-  // Match "key": "oldValue" (double-quoted value, flexible whitespace)
-  const pattern = new RegExp(`("${escapedKey}"\\s*:\\s*")${escapedOld}(")`, 'g');
-  const replacementValue = newValue.replace(/\$/g, '$$'); // escape $ for replace
-  return raw.replace(pattern, `$1${replacementValue}$2`);
-}
+import {
+  DEP_SECTIONS,
+  extractVersionFromGitSsh,
+  buildGitSshDepValue,
+  isGitSshFormat,
+  replaceDepValueInRawPackageJson,
+} from './dep-utils';
 
 export async function bumpParentDependency(
   repo: RepoConfig,
@@ -177,13 +148,12 @@ async function bumpArticleDependency(
 
   const rawPkg = fs.readFileSync(pkgJsonPath, 'utf-8');
   const pkgJson = JSON.parse(rawPkg) as Record<string, unknown>;
-  const depSections = ['dependencies', 'devDependencies', 'peerDependencies'] as const;
 
   let currentValue: string | null = null;
   let sectionKey: string | null = null;
   const articleKey = 'ui-article';
 
-  for (const section of depSections) {
+  for (const section of DEP_SECTIONS) {
     const deps = pkgJson[section] as Record<string, string> | undefined;
     if (deps && articleKey in deps) {
       currentValue = deps[articleKey];
@@ -248,7 +218,6 @@ async function doBump(
   const rawPkg = fs.readFileSync(pkgJsonPath, 'utf-8');
   const pkgJson = JSON.parse(rawPkg) as Record<string, unknown>;
 
-  const depSections = ['dependencies', 'devDependencies', 'peerDependencies'] as const;
   let found = false;
   let currentValue: string | null = null;
   let sectionKey: string | null = null;
@@ -256,7 +225,7 @@ async function doBump(
 
   // Old scripts auto-detect from package.json (UpdateTheme2.sh line 14-18):
   // parent_dependency=$(jq -r 'if .dependencies["ui-core"] then "ui-core" elif .dependencies["ui-base"] then "ui-base"')
-  for (const section of depSections) {
+  for (const section of DEP_SECTIONS) {
     const deps = pkgJson[section] as Record<string, string> | undefined;
     if (deps && pkgKey in deps) {
       currentValue = deps[pkgKey];
@@ -268,7 +237,7 @@ async function doBump(
 
   if (!found) {
     // Try the raw depId name as fallback (old scripts use raw names like "ui-core")
-    for (const section of depSections) {
+    for (const section of DEP_SECTIONS) {
       const deps = pkgJson[section] as Record<string, string> | undefined;
       if (deps && depId in deps) {
         currentValue = deps[depId];
@@ -282,7 +251,7 @@ async function doBump(
 
   if (!found) {
     const allKeys: string[] = [];
-    for (const section of depSections) {
+    for (const section of DEP_SECTIONS) {
       const deps = pkgJson[section] as Record<string, string> | undefined;
       if (deps) allKeys.push(...Object.keys(deps));
     }
@@ -298,7 +267,7 @@ async function doBump(
     if (!confirmKey) return;
     actualKey = confirmKey;
 
-    for (const section of depSections) {
+    for (const section of DEP_SECTIONS) {
       const deps = pkgJson[section] as Record<string, string> | undefined;
       if (deps && confirmKey in deps) {
         currentValue = deps[confirmKey];

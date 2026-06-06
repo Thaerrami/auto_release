@@ -192,4 +192,44 @@ export const msg = {
 
   articleVersionForTrack: (track: string) =>
     `  ui-article version for track ${track} (e.g. v6.6.6, or empty to skip): `,
+
+  productUpgradeTargetsHeader: () =>
+    c(chalk.cyan.bold, '\n  Upgraded versions from this release:\n'),
+
+  productUpgradeTargetLine: (repoId: string, track: string, newTag: string) =>
+    `    ${c(chalk.white.bold, repoId)} track ${track} → ${c(chalk.green.bold, newTag)}`,
+
+  productUpgradeListHeader: (count: number) =>
+    c(chalk.cyan.bold, `\n  ${count} product(s) affected in ui-products:\n`),
+
+  productUpgradePlanLine: (summary: string) =>
+    `    ${c(chalk.white, summary)}`,
+
+  productUpgradePrep: () =>
+    c(chalk.cyan, '\n  Preparing ui-products: stash (if needed) → checkout develop → pull\n'),
+
+  productDepBump: (productId: string, depKey: string, oldVer: string, newVer: string) =>
+    `  ${c(chalk.blue, '↑')} ${productId}: ${depKey} ${c(chalk.red, oldVer)} → ${c(chalk.green, newVer)}`,
+
+  productInstallRunning: (productId: string) =>
+    chalk.dim(`  Running npm install in ${productId}...`),
+
+  productUpgradeNoTargets: () =>
+    c(chalk.dim, '\n  No upgrade targets for ui-products.\n'),
+
+  productUpgradeNoProducts: () =>
+    c(chalk.dim, '\n  No ui-products depend on the upgraded versions.\n'),
+
+  productUpgradeSkipped: () =>
+    c(chalk.yellow, '\n  Product dependency upgrades skipped.\n'),
+
+  productUpgradeComplete: (results: { productId: string; status: string }[]) => {
+    const success = results.filter((r) => r.status === 'success').length;
+    const failed = results.filter((r) => r.status === 'failed').length;
+    return (
+      c(chalk.green.bold, `\n✓  Product upgrades complete: ${success} succeeded`) +
+      (failed > 0 ? c(chalk.red, `, ${failed} failed`) : '') +
+      '\n'
+    );
+  },
 };

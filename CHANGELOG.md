@@ -2,6 +2,12 @@
 
 This file tracks **human-readable changes** to the release tool itself (not the product repos it releases).
 
+### 2026-06-04
+
+- **Product dependency upgrades**: After a successful release, the tool scans `ui-products` (including nested products) and offers to bump theme/core/article deps that match the upgraded versions. Stashes, checks out `develop`, commits per product, optional push.
+- **New flags**: `--skip-product-upgrade`, `--auto-upgrade-products`, `--skip-product-install`.
+- **Docs**: Added `docs/COMMANDS.md` command sheet; updated `docs/README.md`, `docs/DEMO.md`, and root `README.md` with product upgrade flow and recipes.
+
 ### 2026-05-12
 
 - **CLI help**: Added `-h` / `--help` — prints full usage, flags, and examples, then exits.

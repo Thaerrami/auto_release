@@ -14,6 +14,7 @@ const git_client_1 = require("./git-client");
 const config_1 = require("./config");
 const startup_1 = require("./startup");
 const repo_flow_1 = require("./repo-flow");
+const product_deps_1 = require("./product-deps");
 async function main() {
     const flags = (0, cli_1.parseFlags)(process.argv);
     const logger = new logger_1.Logger(flags.logDir);
@@ -27,6 +28,12 @@ async function main() {
     }
     if (flags.autoPush) {
         console.log(chalk_1.default.dim('  --auto-push: after each diff summary, push runs without the push/skip/abort prompt.\n'));
+    }
+    if (flags.skipProductUpgrade) {
+        console.log(chalk_1.default.dim('  --skip-product-upgrade: ui-products dependency upgrades are skipped.\n'));
+    }
+    if (flags.autoUpgradeProducts) {
+        console.log(chalk_1.default.dim('  --auto-upgrade-products: all affected products are upgraded without selection.\n'));
     }
     const gitClient = new git_client_1.RealGitClient();
     const engineer = await gitClient.getConfigEmail(process.cwd());
@@ -83,6 +90,11 @@ async function main() {
         console.log(messages_1.msg.runComplete());
         console.log(messages_1.msg.runSummary(logger.getLogFilePath(), logger.getJsonFilePath()));
         completedSuccessfully = true;
+        await (0, product_deps_1.runProductDependencyUpgrades)(context, results, gitClient, logger, {
+            skipProductUpgrade: flags.skipProductUpgrade,
+            autoUpgradeProducts: flags.autoUpgradeProducts,
+            skipProductInstall: flags.skipProductInstall,
+        });
     }
     catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);

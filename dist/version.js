@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getTrackFromVersion = getTrackFromVersion;
 exports.parseTag = parseTag;
 exports.groupTagsByTrack = groupTagsByTrack;
 exports.getLatestInTrack = getLatestInTrack;
@@ -8,6 +9,13 @@ exports.tagToVersion = tagToVersion;
 exports.versionToTag = versionToTag;
 exports.compareVersions = compareVersions;
 exports.isVersionAhead = isVersionAhead;
+function getTrackFromVersion(version) {
+    const normalized = version.startsWith('v') ? version : `v${version}`;
+    const match = normalized.match(/^v(\d+)\.(\d+)/);
+    if (!match)
+        return null;
+    return `v${match[1]}.${match[2]}`;
+}
 function parseTag(tag) {
     const match = tag.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
     if (!match)

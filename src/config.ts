@@ -4,6 +4,18 @@ import { RepoConfig } from './types';
 const WORKSPACE = path.resolve(__dirname, '..', '..');
 const GH_BASE = 'git@github.com:atypon';
 
+export const UI_PRODUCTS_PATH = path.join(WORKSPACE, 'ui-products');
+
+/** Repos whose tags can be propagated into ui-products package.json dependencies. */
+export const PRODUCT_UPGRADEABLE_REPOS: Record<string, { depKey: string }> = {
+  'ui-theme-photo': { depKey: 'ui-theme' },
+  'ui-theme-classic': { depKey: 'ui-theme' },
+  'ui-theme-eureka': { depKey: 'ui-theme' },
+  'ui-theme-nextgen': { depKey: 'ui-theme' },
+  'ui-core': { depKey: 'ui-core' },
+  'ui-article': { depKey: 'ui-article' },
+};
+
 /**
  * All repos follow a standardized layout:
  *   - Folder: <workspace>/<id>     (e.g. /Users/.../ui-workspace/ui-core)

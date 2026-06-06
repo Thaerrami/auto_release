@@ -35,13 +35,18 @@ export function printHelp(): void {
     '                          (no per-step Yes/Skip prompts).',
     '  --auto-push             After each diff summary, push without the [P]/[S]/[A] menu.',
     '',
+    '  --skip-product-upgrade  Skip post-release ui-products dependency upgrades.',
+    '  --auto-upgrade-products Upgrade all affected products without selection prompt.',
+    '  --skip-product-install  Skip npm install when upgrading product dependencies.',
+    '',
     'Examples:',
     '  node dist/index.js --help',
     '  node dist/index.js --repo ui-core --dry-run',
     '  node dist/index.js --skip-install-build --auto-push',
-    '  node dist/index.js --repo ui-base --skip-install-build',
+    '  node dist/index.js --repo ui-theme-photo --auto-push --auto-upgrade-products',
+    '  node dist/index.js --repo ui-core --skip-product-upgrade',
     '',
-    'Docs: docs/README.md in this repo.',
+    'Docs: docs/README.md · docs/COMMANDS.md',
     '',
   ];
   console.log(lines.join('\n'));
@@ -58,6 +63,9 @@ export function parseFlags(argv: string[]): CLIFlags {
     repoOverride: null,
     skipInstallBuild: false,
     autoPush: false,
+    skipProductUpgrade: false,
+    autoUpgradeProducts: false,
+    skipProductInstall: false,
   };
 
   for (let i = 2; i < argv.length; i++) {
@@ -111,6 +119,15 @@ export function parseFlags(argv: string[]): CLIFlags {
         break;
       case '--auto-push':
         flags.autoPush = true;
+        break;
+      case '--skip-product-upgrade':
+        flags.skipProductUpgrade = true;
+        break;
+      case '--auto-upgrade-products':
+        flags.autoUpgradeProducts = true;
+        break;
+      case '--skip-product-install':
+        flags.skipProductInstall = true;
         break;
       default:
         console.error(`Unknown flag: ${arg}`);

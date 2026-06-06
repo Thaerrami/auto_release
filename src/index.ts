@@ -15,6 +15,7 @@ import {
   validateRepoPaths,
 } from './startup';
 import { repoReleaseFlow } from './repo-flow';
+import { runProductDependencyUpgrades } from './product-deps';
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv);
@@ -34,6 +35,12 @@ async function main(): Promise<void> {
     console.log(
       chalk.dim('  --auto-push: after each diff summary, push runs without the push/skip/abort prompt.\n')
     );
+  }
+  if (flags.skipProductUpgrade) {
+    console.log(chalk.dim('  --skip-product-upgrade: ui-products dependency upgrades are skipped.\n'));
+  }
+  if (flags.autoUpgradeProducts) {
+    console.log(chalk.dim('  --auto-upgrade-products: all affected products are upgraded without selection.\n'));
   }
 
   const gitClient = new RealGitClient();
@@ -101,6 +108,12 @@ async function main(): Promise<void> {
     console.log(msg.runComplete());
     console.log(msg.runSummary(logger.getLogFilePath(), logger.getJsonFilePath()));
     completedSuccessfully = true;
+
+    await runProductDependencyUpgrades(context, results, gitClient, logger, {
+      skipProductUpgrade: flags.skipProductUpgrade,
+      autoUpgradeProducts: flags.autoUpgradeProducts,
+      skipProductInstall: flags.skipProductInstall,
+    });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(chalk.red(`\nFatal error: ${errMsg}\n`));
